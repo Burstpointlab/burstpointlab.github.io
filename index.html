@@ -1,0 +1,1547 @@
+<title>Burstpoint Race</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Pick a lane, call the race. Physics ball races against HP bars – playable Burstpoint.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg-top: #0e101e;
+    --bg-bot: #080912;
+    --panel: rgba(10, 12, 24, 0.91);
+    --panel-edge: rgba(255, 255, 255, 0.10);
+    --text: #f3f5ff;
+    --muted: rgba(243, 245, 255, 0.58);
+    --faint: rgba(243, 245, 255, 0.32);
+    --cyan: #3DE1FF;
+    --violet: #C46BFF;
+    --lime: #7CFF3D;
+    --magenta: #FF3DDA;
+    --amber: #FFC53D;
+    --rose: #FF5C7A;
+    --ice: #8FD6FF;
+    --focus: #ffffff;
+    --font: "Inter", "Inter Display", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --s: 0.4;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg-bot);
+    color: var(--text);
+    font-family: var(--font);
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    height: 100%;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: max(10px, env(safe-area-inset-top, 0px)) max(10px, env(safe-area-inset-bottom, 0px));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bot) 100%);
+  }
+  .stage {
+    position: relative;
+    width: 300px;
+    height: 533px;
+    border-radius: calc(var(--s) * 28px);
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 calc(var(--s) * 30px) calc(var(--s) * 80px) rgba(0,0,0,0.55);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* HUD -------------------------------------------------------------- */
+  .hud {
+    position: absolute;
+    left: calc(var(--s) * 30px);
+    right: calc(var(--s) * 30px);
+    top: calc(var(--s) * 26px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .hud-group { display: flex; gap: calc(var(--s) * 14px); pointer-events: auto; }
+  .hud button {
+    font: 700 calc(var(--s) * 30px) var(--font);
+    color: var(--text);
+    background: rgba(10, 12, 24, 0.72);
+    border: calc(var(--s) * 2px) solid rgba(255,255,255,0.14);
+    border-radius: 999px;
+    min-width: calc(var(--s) * 110px);
+    height: calc(var(--s) * 66px);
+    padding: 0 calc(var(--s) * 24px);
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--s) * 8px);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .hud button.on { border-color: rgba(255,255,255,0.55); }
+  .hud button.off { color: var(--muted); }
+  .hud.hidden { display: none; }
+
+  /* Overlays --------------------------------------------------------- */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: calc(var(--s) * 60px) calc(var(--s) * 56px);
+    text-align: center;
+    background: rgba(8, 9, 18, 0.62);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    overflow-y: auto;
+  }
+  .overlay.hidden { display: none; }
+  .overlay.light { background: rgba(8, 9, 18, 0.78); }
+  .card {
+    width: 100%;
+    max-width: calc(var(--s) * 820px);
+    background: var(--panel);
+    border: calc(var(--s) * 2px) solid var(--panel-edge);
+    border-radius: calc(var(--s) * 36px);
+    padding: calc(var(--s) * 50px) calc(var(--s) * 48px);
+    box-shadow: 0 calc(var(--s) * 20px) calc(var(--s) * 60px) rgba(0,0,0,0.5);
+  }
+  h1.title {
+    margin: 0;
+    font: 800 calc(var(--s) * 118px) / 1 var(--font);
+    letter-spacing: -0.03em;
+    background: linear-gradient(90deg, var(--cyan), var(--violet) 55%, var(--magenta));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+    animation: titlePulse 3.2s ease-in-out infinite;
+  }
+  @keyframes titlePulse {
+    0%, 100% { transform: scale(1); filter: brightness(0.96); }
+    50% { transform: scale(1.02); filter: brightness(1.12); }
+  }
+  .sub {
+    margin: calc(var(--s) * 18px) 0 calc(var(--s) * 36px);
+    font: 600 calc(var(--s) * 34px) / 1.3 var(--font);
+    color: var(--muted);
+  }
+  .modes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: calc(var(--s) * 8px);
+    background: rgba(255,255,255,0.05);
+    border-radius: 999px;
+    padding: calc(var(--s) * 8px);
+    margin-bottom: calc(var(--s) * 10px);
+  }
+  .modes button {
+    font: 800 calc(var(--s) * 26px) / 1 var(--font);
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    padding: calc(var(--s) * 22px) 0;
+    cursor: pointer;
+  }
+  .modes button[aria-pressed="true"] { color: #0b0d1a; background: var(--text); }
+  .modes button:disabled { cursor: not-allowed; }
+  .mode-hint { margin: 0 0 calc(var(--s) * 10px); font: 600 calc(var(--s) * 24px) / 1.3 var(--font); color: var(--faint); min-height: calc(var(--s) * 32px); }
+  .btn {
+    display: block;
+    width: 100%;
+    font: 800 calc(var(--s) * 40px) / 1 var(--font);
+    letter-spacing: 0.01em;
+    color: #0b0d1a;
+    background: linear-gradient(90deg, var(--cyan), #8fd6ff);
+    border: 0;
+    border-radius: 999px;
+    padding: calc(var(--s) * 32px) calc(var(--s) * 30px);
+    cursor: pointer;
+    margin-top: calc(var(--s) * 16px);
+    transition: transform 120ms ease;
+  }
+  .btn:active { transform: scale(0.985); }
+  .btn.secondary {
+    color: var(--text);
+    background: rgba(255,255,255,0.07);
+    border: calc(var(--s) * 2px) solid rgba(255,255,255,0.14);
+  }
+  .btn.ghost {
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    font-weight: 700;
+    font-size: calc(var(--s) * 32px);
+    padding: calc(var(--s) * 18px);
+  }
+  .btn.lime { background: linear-gradient(90deg, var(--lime), #b9ff8f); }
+  .stats {
+    margin-top: calc(var(--s) * 30px);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: calc(var(--s) * 10px);
+  }
+  .stat { background: rgba(255,255,255,0.05); border-radius: calc(var(--s) * 20px); padding: calc(var(--s) * 18px) calc(var(--s) * 6px); }
+  .stat b { display: block; font: 800 calc(var(--s) * 44px) / 1.1 var(--font); font-variant-numeric: tabular-nums; }
+  .stat span { display: block; margin-top: calc(var(--s) * 6px); font: 600 calc(var(--s) * 22px) / 1.1 var(--font); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .note { margin-top: calc(var(--s) * 26px); font: 600 calc(var(--s) * 26px) / 1.4 var(--font); color: var(--faint); }
+  .note.today { color: var(--lime); }
+  .note.today.miss { color: var(--muted); }
+  .verdict { margin: 0; font: 800 calc(var(--s) * 92px) / 1 var(--font); letter-spacing: -0.03em; color: var(--text); display: inline-block; }
+  .verdict.ok { color: var(--lime); text-shadow: 0 0 calc(var(--s) * 30px) rgba(124,255,61,0.35); animation: verdictPop 520ms cubic-bezier(.2,1.4,.4,1) both; }
+  .verdict.miss { animation: verdictWobble 700ms ease-in-out both; }
+  @keyframes verdictPop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes verdictWobble { 0% { transform: translateX(0); } 20% { transform: translateX(calc(var(--s) * -14px)) rotate(-1.5deg); } 45% { transform: translateX(calc(var(--s) * 10px)) rotate(1deg); } 70% { transform: translateX(calc(var(--s) * -5px)); } 100% { transform: translateX(0); } }
+  .verdict-sub { margin: calc(var(--s) * 16px) 0 calc(var(--s) * 30px); font: 700 calc(var(--s) * 30px) / 1.3 var(--font); color: var(--muted); }
+  .gaps { display: flex; flex-direction: column; gap: calc(var(--s) * 8px); margin-bottom: calc(var(--s) * 28px); }
+  .gap-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,255,255,0.05);
+    border-radius: calc(var(--s) * 18px);
+    padding: calc(var(--s) * 14px) calc(var(--s) * 22px);
+    font: 700 calc(var(--s) * 30px) / 1 var(--font);
+  }
+  .gap-row .lbl { display: flex; align-items: center; gap: calc(var(--s) * 12px); min-width: 0; }
+  .gap-row .dot { width: calc(var(--s) * 20px); height: calc(var(--s) * 20px); border-radius: 50%; display: inline-block; flex: none; }
+  .gap-row .time { color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+  .gap-row.win .time { color: var(--text); }
+  .gap-row .you { font-size: calc(var(--s) * 18px); letter-spacing: 0.1em; color: var(--muted); margin-left: calc(var(--s) * 4px); }
+  .meta { display: flex; justify-content: space-around; margin-bottom: calc(var(--s) * 20px); font: 700 calc(var(--s) * 28px) / 1.3 var(--font); color: var(--muted); }
+  .meta b { color: var(--text); }
+  .meta .streak-up { color: var(--lime); }
+  .how p { margin: 0 0 calc(var(--s) * 18px); font: 600 calc(var(--s) * 29px) / 1.45 var(--font); color: var(--text); text-align: left; }
+  .how ul { margin: 0 0 calc(var(--s) * 16px); padding: 0; list-style: none; text-align: left; max-height: calc(var(--s) * 760px); overflow-y: auto; }
+  .how li { font: 600 calc(var(--s) * 26px) / 1.4 var(--font); color: var(--muted); padding: calc(var(--s) * 10px) 0; border-top: 1px solid rgba(255,255,255,0.08); }
+  .how li b { color: var(--text); font-weight: 800; }
+  .how h2 { margin: 0 0 calc(var(--s) * 20px); font: 800 calc(var(--s) * 58px) / 1 var(--font); letter-spacing: -0.02em; }
+  .how h3 { margin: calc(var(--s) * 14px) 0 calc(var(--s) * 4px); font: 800 calc(var(--s) * 22px) / 1 var(--font); letter-spacing: 0.12em; color: var(--faint); text-align: left; text-transform: uppercase; }
+  .share-box {
+    display: none;
+    margin-top: calc(var(--s) * 16px);
+    width: 100%;
+    font: 600 calc(var(--s) * 26px) / 1.4 var(--font);
+    color: var(--text);
+    background: rgba(255,255,255,0.06);
+    border: calc(var(--s) * 2px) solid rgba(255,255,255,0.14);
+    border-radius: calc(var(--s) * 18px);
+    padding: calc(var(--s) * 16px);
+    resize: none;
+  }
+  .share-box.show { display: block; }
+  .toast {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--s) * 110px);
+    transform: translate(-50%, calc(var(--s) * 20px));
+    z-index: 20;
+    background: rgba(10,12,24,0.92);
+    border: calc(var(--s) * 2px) solid rgba(255,255,255,0.14);
+    color: var(--text);
+    font: 700 calc(var(--s) * 28px) / 1 var(--font);
+    padding: calc(var(--s) * 20px) calc(var(--s) * 34px);
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease, transform 200ms ease;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  button:focus-visible, textarea:focus-visible {
+    outline: calc(var(--s) * 4px) solid var(--focus);
+    outline-offset: calc(var(--s) * 4px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn, .toast { transition: none; }
+    h1.title, .verdict.ok, .verdict.miss { animation: none; }
+  }
+</style>
+
+<div class="wrap" id="app">
+  <div class="stage" id="stage" style="--s:0.4">
+    <canvas id="game" aria-label="Burstpoint race track" role="img"></canvas>
+
+    <div class="hud" id="hud">
+      <div class="hud-group">
+        <button type="button" id="btnHome" aria-label="Back to start">✕</button>
+      </div>
+      <div class="hud-group">
+        <button type="button" id="btnSpeed" aria-label="Race speed" aria-pressed="false">⏩ 1×</button>
+        <button type="button" id="btnSound" aria-label="Sound" aria-pressed="true">🔊</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="startScreen">
+      <div class="card">
+        <h1 class="title">BURSTPOINT</h1>
+        <p class="sub">Pick a lane. Call the race.</p>
+        <div class="modes" role="group" aria-label="Race mode">
+          <button type="button" id="modeClassic" aria-pressed="true">CLASSIC</button>
+          <button type="button" id="modeRemix" aria-pressed="false">REMIX</button>
+          <button type="button" id="modeChaos" aria-pressed="false">CHAOS</button>
+        </div>
+        <p class="mode-hint" id="modeHint"></p>
+        <button type="button" class="btn" id="btnStart">Start race</button>
+        <button type="button" class="btn secondary" id="btnDaily">Today's race</button>
+        <button type="button" class="btn ghost" id="btnHow">How it works</button>
+        <div class="stats" id="stats" aria-live="polite">
+          <div class="stat"><b id="stRaces">0</b><span>Races</span></div>
+          <div class="stat"><b id="stRate">–</b><span>Hit rate</span></div>
+          <div class="stat"><b id="stStreak">0</b><span>Streak</span></div>
+          <div class="stat"><b id="stBest">0</b><span>Best</span></div>
+        </div>
+        <p class="note today hidden" id="todayNote"></p>
+        <p class="note">More races daily: @burstpointlab</p>
+      </div>
+    </div>
+
+    <div class="overlay light hidden" id="resultScreen" role="dialog" aria-labelledby="verdict">
+      <div class="card">
+        <p class="verdict" id="verdict">CALLED IT</p>
+        <p class="verdict-sub" id="verdictSub"></p>
+        <div class="gaps" id="gaps"></div>
+        <div class="meta">
+          <div>Streak<br><b id="rsStreak">0</b></div>
+          <div>Hit rate<br><b id="rsRate">–</b></div>
+          <div>Best<br><b id="rsBest">0</b></div>
+        </div>
+        <p class="note today hidden" id="rsToday"></p>
+        <button type="button" class="btn lime" id="btnNext">Next race</button>
+        <button type="button" class="btn secondary" id="btnShare">Share streak</button>
+        <textarea class="share-box" id="shareBox" rows="2" readonly aria-label="Share text"></textarea>
+        <button type="button" class="btn ghost" id="btnResultHome">Home</button>
+        <p class="note">More races daily: @burstpointlab</p>
+      </div>
+    </div>
+
+    <div class="overlay light hidden how" id="howScreen" role="dialog" aria-labelledby="howTitle">
+      <div class="card">
+        <h2 id="howTitle">How it works</h2>
+        <p>Every lane drops balls on a ladder of HP bars – the same ladder for every lane – but each lane follows its own math rule after every broken bar.</p>
+        <p>Before the countdown you tap the lane you think clears every bar first. The race is pure physics: nothing is nudged for or against you.</p>
+        <p>Call it right and your streak grows. Miss and it resets – that's the game.</p>
+        <ul id="ruleList"></ul>
+        <button type="button" class="btn" id="btnHowClose">Got it</button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+// ==SIM-BEGIN==
+// Pure simulation + ladder design. No DOM. Runs in the browser and in Node (see quality check).
+const SIM = (function () {
+  'use strict';
+  const W = 1080, H = 1920;
+  const GRAV = 3200, BOUNCE_H = 112;
+  const PTOP = 316, PBOT = 1792, FREE_TOP = 300;
+  const TICK = 1 / 30;
+  const MAX_BALLS = 400;
+  const MAX_POWER = 1e9;
+  const BAR_THICK = 7;
+  const RATE = 1 / (2 * Math.sqrt(2 * BOUNCE_H / GRAV)); // ≈ 1.89 hits / s / ball
+  const WIN_MIN = 18, WIN_MAX = 28, WIN_TARGET = 22.5;
+  const RUN_ON = 2.3; // seconds the race keeps running after the winner
+
+  // ---- seeded RNG -------------------------------------------------------
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function hashStr(s) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    return h >>> 0;
+  }
+
+  // ---- rules ------------------------------------------------------------
+  // A rule is {id, label, top, bottom, sub, apply(state, level) -> state}; state = {power, balls}.
+  // `level` is the index (0-based) of the bar that just broke. Results are clamped afterwards.
+  const fib = n => { let a = 1, b = 1; for (let i = 1; i < n; i++) { const t = a + b; a = b; b = t; } return a; };
+  const R = (id, label, top, bottom, sub, apply, extra) => Object.assign({ id, label, top, bottom, sub, apply }, extra || {});
+  const RULES = {
+    mul2p:  R('mul2p',  '×2 POWER',      '×2',       'POWER', 'doubles the hit strength after every bar', s => ({ power: s.power * 2, balls: s.balls })),
+    mul3p:  R('mul3p',  '×3 POWER',      '×3',       'POWER', 'triples the hit strength after every bar', s => ({ power: s.power * 3, balls: s.balls })),
+    mul2b:  R('mul2b',  '×2 BALLS',      '×2',       'BALLS', 'doubles the swarm after every bar', s => ({ power: s.power, balls: s.balls * 2 })),
+    mul3b:  R('mul3b',  '×3 BALLS',      '×3',       'BALLS', 'triples the swarm after every bar', s => ({ power: s.power, balls: s.balls * 3 })),
+    add8p:  R('add8p',  '+8 POWER',      '+8',       'POWER', 'adds eight to the hit strength after every bar', s => ({ power: s.power + 8, balls: s.balls })),
+    add6p:  R('add6p',  '+6 POWER',      '+6',       'POWER', 'adds six to the hit strength after every bar', s => ({ power: s.power + 6, balls: s.balls })),
+    add5p:  R('add5p',  '+5 POWER',      '+5',       'POWER', 'adds five to the hit strength after every bar', s => ({ power: s.power + 5, balls: s.balls })),
+    add4p:  R('add4p',  '+4 POWER',      '+4',       'POWER', 'adds four to the hit strength after every bar', s => ({ power: s.power + 4, balls: s.balls })),
+    add3p:  R('add3p',  '+3 POWER',      '+3',       'POWER', 'adds three to the hit strength after every bar', s => ({ power: s.power + 3, balls: s.balls })),
+    add8b:  R('add8b',  '+8 BALLS',      '+8',       'BALLS', 'adds eight balls after every bar', s => ({ power: s.power, balls: s.balls + 8 })),
+    add1b:  R('add1b',  '+1 BALL',       '+1',       'BALL',  'adds one ball after every bar', s => ({ power: s.power, balls: s.balls + 1 })),
+    div2b:  R('div2b',  '÷2 BALLS',      '÷2',       'BALLS', 'halves the swarm after every bar', s => ({ power: s.power, balls: Math.floor(s.balls / 2) })),
+    sub1b:  R('sub1b',  '−1 BALL',       '−1',       'BALL',  'loses one ball after every bar', s => ({ power: s.power, balls: s.balls - 1 })),
+    sub1p:  R('sub1p',  '−1 POWER',      '−1',       'POWER', 'loses one hit strength after every bar', s => ({ power: s.power - 1, balls: s.balls })),
+    levelb: R('levelb', '+LEVEL BALLS',  '+LEVEL',   'BALLS', 'adds 1, then 2, then 3 … balls – one more each bar', (s, l) => ({ power: s.power, balls: s.balls + l + 1 })),
+    sqp:    R('sqp',    'POWER²',        'POWER²',   '',      'squares the hit strength after every bar (2 → 4 → 16 → 256)', s => ({ power: s.power * s.power, balls: s.balls })),
+    sqrtb:  R('sqrtb',  '√ BALLS',       '√',        'BALLS', 'shrinks the swarm to its square root (256 → 16 → 4 → 2)', s => ({ power: s.power, balls: Math.round(Math.sqrt(s.balls)) })),
+    fibb:   R('fibb',   'FIB BALLS',     'FIB',      'BALLS', 'Fibonacci swarm: 1, 1, 2, 3, 5, 8, 13 … balls', (s, l) => ({ power: s.power, balls: fib(l + 2) })),
+    alt1p:  R('alt1p',  '+2 THEN ×2',    '+2 → ×2',  'POWER', 'hit strength alternates: +2, then ×2, then +2 …', (s, l) => ({ power: l % 2 === 0 ? s.power + 2 : s.power * 2, balls: s.balls })),
+    alt2p:  R('alt2p',  '×2 THEN +2',    '×2 → +2',  'POWER', 'hit strength alternates: ×2, then +2, then ×2 …', (s, l) => ({ power: l % 2 === 0 ? s.power * 2 : s.power + 2, balls: s.balls })),
+    cdp:    R('cdp',    '10 − LEVEL POWER', '10−LEVEL', 'POWER', 'countdown: hit strength 10, 9, 8, 7 … one less each bar', (s, l) => ({ power: 10 - (l + 1), balls: s.balls })),
+    oddevb: R('oddevb', 'ODD ×3 · EVEN ÷2 BALLS', '×3 | ÷2', 'BALLS', 'odd bars triple the swarm, even bars halve it', (s, l) => ({ power: s.power, balls: (l + 1) % 2 === 1 ? s.balls * 3 : Math.floor(s.balls / 2) })),
+    merge:  R('merge',  'MERGE',         'MERGE',    '',      'all balls merge into ONE ball with their hit strengths added up', s => ({ power: s.power * s.balls, balls: 1 }), { merge: true }),
+    split:  R('split',  'SPLIT ×2',      'SPLIT',    '×2',    'every ball splits in two, each with half the hit strength', s => ({ power: Math.floor(s.power / 2), balls: s.balls * 2 })),
+  };
+  function clampState(st) {
+    let p = Number.isFinite(st.power) ? Math.floor(st.power) : MAX_POWER, b = Number.isFinite(st.balls) ? Math.floor(st.balls) : MAX_BALLS;
+    if (p < 1) p = 1; if (p > MAX_POWER) p = MAX_POWER;
+    if (b < 1) b = 1; if (b > MAX_BALLS) b = MAX_BALLS;
+    return { power: p, balls: b };
+  }
+
+  // ---- families -----------------------------------------------------------
+  // S(rule, power0, balls0). Start values are design parameters (calibrated for fair win rates
+  // with calibrate.js); the labels stay exactly as in the videos.
+  const S = (rule, power0, balls0) => ({ rule: RULES[rule], power0, balls0 });
+  const FAMILIES = [
+    // CLASSIC – the seven video families
+    { key: 'gleiche_mathematik',    mode: 'classic', name: 'Same math',        fair: false, sides: [S('mul2p', 2, 1), S('mul2b', 1, 2)] },
+    { key: 'schwarm_gegen_hammer',  mode: 'classic', name: 'Swarm vs hammer',  fair: true,  sides: [S('mul2b', 1, 3), S('add8p', 4, 1)] },
+    { key: 'hammer_gegen_schwarm',  mode: 'classic', name: 'Hammer vs swarm',  fair: true,  sides: [S('mul2p', 2, 1), S('add8b', 1, 2)] },
+    { key: 'schwund',               mode: 'classic', name: 'Shrinking swarm',  fair: true,  sides: [S('div2b', 3, 128), S('add3p', 5, 1)] },
+    { key: 'eins_nach_dem_anderen', mode: 'classic', name: 'One at a time',    fair: false, sides: [S('add1b', 3, 1), S('add3p', 4, 1)] },
+    { key: 'drei_wege',             mode: 'classic', name: 'Three ways',       fair: false, sides: [S('mul2p', 2, 1), S('mul2b', 1, 2), S('add8p', 8, 1)] },
+    { key: 'drei_wege_masse',       mode: 'classic', name: 'Three ways, mass', fair: false, sides: [S('add8b', 1, 10), S('mul2p', 2, 1), S('mul2b', 1, 2)] },
+    // REMIX – new rules
+    { key: 'level_balls',   mode: 'remix', name: 'Level swarm',        fair: true, sides: [S('levelb', 3, 1), S('mul2p', 2, 1)] },
+    { key: 'power_squared', mode: 'remix', name: 'Square power',       fair: false, sides: [S('sqp', 2, 1), S('mul3b', 2, 1)] },
+    { key: 'root_swarm',    mode: 'remix', name: 'Root swarm',         fair: true, sides: [S('sqrtb', 6, 256), S('sub1p', 12, 1)] },
+    { key: 'fibonacci',     mode: 'remix', name: 'Fibonacci',          fair: true, sides: [S('fibb', 4, 1), S('add4p', 4, 1)] },
+    { key: 'alternating',   mode: 'remix', name: 'Alternating',        fair: true, sides: [S('alt1p', 3, 1), S('alt2p', 3, 1)] },
+    { key: 'countdown',     mode: 'remix', name: 'Countdown',          fair: true, sides: [S('cdp', 10, 1), S('add1b', 2, 1)] },
+    { key: 'odd_even',      mode: 'remix', name: 'Odd and even',       fair: true, sides: [S('oddevb', 2, 4), S('add6p', 7, 1)] },
+    { key: 'merge_split',   mode: 'remix', name: 'Merge vs split',     fair: true, sides: [S('merge', 2, 12), S('split', 16, 1)] },
+    { key: 'shrinking',     mode: 'remix', name: 'Shrinking',          fair: true, sides: [S('sub1b', 2, 18), S('add5p', 4, 1)] },
+    { key: 'remix_trio',    mode: 'remix', name: 'Remix trio',         fair: false, sides: [S('fibb', 6, 1), S('levelb', 2, 8), S('mul2p', 2, 1)] },
+    { key: 'remix_trio_2',  mode: 'remix', name: 'Remix trio II',      fair: true, sides: [S('sqp', 2, 1), S('sqrtb', 11, 287), S('add4p', 5, 1)] },
+    // CHAOS – four lanes
+    { key: 'chaos_classic', mode: 'chaos', name: 'Chaos classic',      fair: false, sides: [S('mul2p', 2, 1), S('mul2b', 1, 2), S('add8p', 8, 1), S('add8b', 1, 8)] },
+    { key: 'chaos_triple',  mode: 'chaos', name: 'Chaos triple',       fair: false, sides: [S('mul2p', 5, 1), S('mul3b', 3, 1), S('add8p', 14, 1), S('add8b', 1, 12)] },
+    { key: 'chaos_math',    mode: 'chaos', name: 'Chaos math',         fair: false, sides: [S('sqp', 2, 1), S('sqrtb', 1, 256), S('fibb', 3, 1), S('levelb', 2, 1)] },
+    { key: 'chaos_mix',     mode: 'chaos', name: 'Chaos mix',          fair: false, sides: [S('alt1p', 2, 2), S('fibb', 6, 1), S('sub1b', 2, 24), S('add6p', 9, 1)] },
+    { key: 'chaos_merge',   mode: 'chaos', name: 'Chaos merge',        fair: false, sides: [S('merge', 2, 12), S('split', 12, 1), S('levelb', 4, 2), S('div2b', 5, 128)] },
+  ];
+  function familiesFor(mode) {
+    const idx = [];
+    FAMILIES.forEach((f, i) => { if (f.fair && (mode === 'all' || f.mode === mode)) idx.push(i); });
+    return idx;
+  }
+
+  // ---- palette ----------------------------------------------------------
+  const PALETTE = { cyan: '#3DE1FF', violet: '#C46BFF', lime: '#7CFF3D', magenta: '#FF3DDA', amber: '#FFC53D', rose: '#FF5C7A', ice: '#8FD6FF' };
+  const PAIRS = [['cyan', 'violet'], ['cyan', 'amber'], ['lime', 'magenta'], ['cyan', 'rose'], ['amber', 'violet'], ['lime', 'violet'], ['ice', 'magenta'], ['amber', 'cyan']];
+  const TRIPLES = [['cyan', 'violet', 'lime'], ['cyan', 'amber', 'magenta'], ['ice', 'rose', 'lime'], ['cyan', 'magenta', 'amber'], ['violet', 'lime', 'amber']];
+  const QUADS = [['cyan', 'violet', 'lime', 'amber'], ['cyan', 'magenta', 'amber', 'lime'], ['ice', 'rose', 'lime', 'violet'], ['amber', 'cyan', 'magenta', 'lime']];
+
+  // ---- geometry ---------------------------------------------------------
+  function layout(n) {
+    const margin = n === 2 ? 44 : n === 3 ? 30 : 22, gap = n === 2 ? 26 : n === 3 ? 18 : 14;
+    const pw = (W - 2 * margin - gap * (n - 1)) / n;
+    const lanes = [];
+    for (let i = 0; i < n; i++) { const x0 = margin + i * (pw + gap); lanes.push({ x0, x1: x0 + pw, cx: x0 + pw / 2 }); }
+    return { margin, gap, pw, lanes, R: n === 2 ? 11 : n === 3 ? 9 : 8, thick: n === 2 ? 7 : n === 3 ? 6 : 5 };
+  }
+  function barYs(nbars) {
+    const y0 = PTOP + FREE_TOP, y1 = PBOT - 150, ys = [];
+    for (let i = 0; i < nbars; i++) ys.push(y0 + (y1 - y0) * i / (nbars - 1));
+    return ys;
+  }
+
+  // ---- ladder design (port of tune.py) ----------------------------------
+  // Damage model per bar: power·balls, carried forward with the lane rule after every bar.
+  // The hit count per bar is quantised (ceil(hp/power)) because the real race wastes overkill –
+  // without that, single-ball hammer lanes are predicted too fast.
+  function rates(side, nbars) {
+    let st = clampState({ power: side.power0, balls: side.balls0 });
+    const rs = [];
+    for (let i = 0; i < nbars; i++) {
+      rs.push({ power: st.power, balls: st.balls, rate: st.power * st.balls });
+      st = clampState(side.rule.apply(st, i));
+    }
+    return rs;
+  }
+  // Measured extra seconds per bar for the balls to reach the next bar after a break: a single ball
+  // (the one that broke the bar is still flying up) loses ~0.18 s, a swarm only ~0.06 s.
+  function dropTime(balls) { return 0.06 + 0.12 / balls; }
+  function curve(ladder, rs) {
+    let t = 0; const c = [];
+    for (let i = 0; i < ladder.length; i++) {
+      const hits = Math.ceil(ladder[i] / rs[i].power);
+      t += hits / (rs[i].balls * RATE) + dropTime(rs[i].balls);
+      // first bar: balls spawn 60..300 px above it and hit earlier than a full bounce period
+      if (i === 0) t -= 0.45 / Math.pow(rs[i].balls, 0.8);
+      c.push(t);
+    }
+    return c;
+  }
+  function progressAt(c, t) {
+    const n = c.length;
+    if (t >= c[n - 1]) return 1;
+    let prev = 0;
+    for (let i = 0; i < n; i++) {
+      if (t < c[i]) return (i + (t - prev) / (c[i] - prev)) / n;
+      prev = c[i];
+    }
+    return 1;
+  }
+  function score(ladder, sideRates) {
+    const curves = sideRates.map(rs => curve(ladder, rs));
+    const ends = curves.map(c => c[c.length - 1]).sort((a, b) => a - b);
+    const total = ends[ends.length - 1], spread = total - ends[0];
+    if (total < WIN_MIN || total > WIN_MAX) return { ok: false, total, spread, score: -1 };
+    const first = ends[0];
+    let worst = 0;
+    for (let k = 1; k <= 90; k++) {
+      const t = first * k / 90;
+      let p1 = -1, p2 = -1;
+      for (const c of curves) { const p = progressAt(c, t); if (p > p1) { p2 = p1; p1 = p; } else if (p > p2) p2 = p; }
+      if (p1 - p2 > worst) worst = p1 - p2;
+    }
+    const s = 1 - Math.min(worst / 0.40, 1) * 0.60 - Math.min(spread / 5, 1) * 0.40;
+    return { ok: true, total, spread, worst, score: s };
+  }
+  function mkLadder(a, g, nbars) { const l = []; for (let i = 0; i < nbars; i++) l.push(Math.max(4, Math.round(a * Math.pow(g, i)))); return l; }
+  // Grid search a ∈ 6..88 (step 2) × growth g ∈ 1.30..2.27 (step 0.03), ladder[i] = max(4, round(a·g^i)).
+  // Returns the best model ladder (first bar refined) plus the next-best distinct candidates,
+  // which planRace() then rehearses in the real simulation to pick the most open ladder.
+  function findLadder(sides, nbars, keep, gRange) {
+    const sideRates = sides.map(s => rates(s, nbars));
+    const cands = [];
+    let nearest = null, nearestD = Infinity;
+    const gMin = gRange ? gRange[0] : 1.30, gMax = gRange ? gRange[1] : 2.27;
+    const gSteps = Math.round((gMax - gMin) / 0.03);
+    for (let a = 6; a <= 88; a += 2) {
+      for (let gi = 0; gi <= gSteps; gi++) {
+        const g = gMin + gi * 0.03;
+        const l = mkLadder(a, g, nbars);
+        const r = score(l, sideRates);
+        if (r.ok) cands.push({ ladder: l, score: r.score, model: r });
+        else { const d = Math.abs(r.total - WIN_TARGET); if (d < nearestD) { nearestD = d; nearest = { l, total: r.total }; } }
+      }
+    }
+    if (!cands.length) {
+      // nothing in the window: take the closest ladder and scale it into the window
+      const f = WIN_TARGET / nearest.total;
+      const l = nearest.l.map(v => Math.max(4, Math.round(v * f)));
+      cands.push({ ladder: l, score: score(l, sideRates).score, model: score(l, sideRates) });
+    }
+    cands.sort((x, y) => y.score - x.score);
+    // fine tuning of the first bar of the best candidate
+    const best = cands[0];
+    let refined = best.ladder.slice(), bestS = best.score;
+    for (let a0 = 4; a0 <= 3 * best.ladder[0]; a0 += 2) {
+      const l = best.ladder.slice(); l[0] = a0;
+      const r = score(l, sideRates);
+      if (r.ok && r.score > bestS) { bestS = r.score; refined = l; }
+    }
+    const out = [{ ladder: refined, score: bestS, model: score(refined, sideRates) }];
+    const seen = new Set([refined.join(',')]);
+    const push = c => { const k = c.ladder.join(','); if (seen.has(k)) return; seen.add(k); out.push(c); };
+    const nScore = Math.max(1, Math.round((keep || 12) * 2 / 3));
+    for (const c of cands) { if (out.length >= nScore) break; push(c); }
+    // plus the candidates with the closest predicted finish – the game wants a tight finish above all
+    const bySpread = cands.slice().sort((x, y) => x.model.spread - y.model.spread);
+    for (const c of bySpread) { if (out.length >= (keep || 12)) break; push(c); }
+    return { ladder: refined, score: bestS, model: out[0].model, candidates: out };
+  }
+
+  // ---- race state -------------------------------------------------------
+  function createRace(cfg) {
+    const sides = cfg.sides, n = sides.length, nbars = cfg.nbars;
+    const lay = layout(n);
+    const r = {
+      n, nbars, lay, R: lay.R, barY: barYs(nbars), ladder: cfg.ladder.slice(), sides,
+      seed: cfg.seed >>> 0, rng: mulberry32(cfg.seed >>> 0), substeps: cfg.substeps || 8,
+      t: 0, tick: 0, winner: -1, winnerT: null, lanes: [], allDone: false,
+    };
+    for (let i = 0; i < n; i++) {
+      const s = sides[i];
+      const st = clampState({ power: s.power0, balls: s.balls0 });
+      r.lanes.push({
+        i, x0: lay.lanes[i].x0, x1: lay.lanes[i].x1, side: s,
+        level: 0, power: st.power, hp: cfg.ladder.slice(),
+        xs: new Float64Array(MAX_BALLS), ys: new Float64Array(MAX_BALLS), vxs: new Float64Array(MAX_BALLS), vys: new Float64Array(MAX_BALLS), cnt: 0,
+        finished: false, finishT: null, hitsTotal: 0, want: st.balls,
+      });
+    }
+    for (let i = 0; i < n; i++) { const ln = r.lanes[i]; for (let k = 0; k < ln.want; k++) spawn(r, ln); }
+    return r;
+  }
+  function spawn(r, ln) {
+    if (ln.cnt >= MAX_BALLS || ln.level >= r.nbars) return;
+    const R = r.R, ay = r.barY[ln.level];
+    const k = ln.cnt++;
+    ln.xs[k] = ln.x0 + R + 8 + r.rng() * (ln.x1 - ln.x0 - 2 * R - 16);
+    const ylo = Math.max(PTOP + 24, ay - 300), yhi = ay - 60;
+    ln.ys[k] = ylo + r.rng() * (yhi - ylo);
+    ln.vxs[k] = r.rng() * 52 - 26;
+    ln.vys[k] = 20 + r.rng() * 70;
+  }
+  function applyRule(r, ln, level) {
+    const st = clampState(ln.side.rule.apply({ power: ln.power, balls: ln.cnt }, level));
+    const change = { power: [ln.power, st.power], balls: [ln.cnt, st.balls] };
+    ln.power = st.power;
+    if (ln.level < r.nbars) {
+      while (ln.cnt > st.balls) ln.cnt--;
+      while (ln.cnt < st.balls) spawn(r, ln);
+    }
+    return change;
+  }
+  function laneProgress(r, ln) {
+    if (ln.finished || ln.level >= r.nbars) return 1;
+    const hp0 = r.ladder[ln.level];
+    const p = (ln.level + (1 - Math.max(0, ln.hp[ln.level]) / hp0)) / r.nbars;
+    return p < 0 ? 0 : p > 1 ? 1 : p;
+  }
+  // One fixed 1/30 s tick. Returns events for sound and visuals.
+  function stepRace(r) {
+    const n = r.n, sub = r.substeps, dt = TICK / sub, R = r.R;
+    const halfT = BAR_THICK / 2;
+    const ev = { hits: new Array(n).fill(0), hitX: [], breaks: [] };
+    for (let i = 0; i < n; i++) ev.hitX.push([]);
+    for (let i = 0; i < n; i++) {
+      const ln = r.lanes[i];
+      const x0 = ln.x0 + R, x1 = ln.x1 - R, yTop = PTOP + R, yBot = PBOT - R;
+      const xs = ln.xs, ys = ln.ys, vxs = ln.vxs, vys = ln.vys;
+      const hx = ev.hitX[i];
+      for (let s = 0; s < sub; s++) {
+        const active = ln.level < r.nbars;
+        const barTop = active ? r.barY[ln.level] - halfT : 0;
+        const power = ln.power;
+        let hits = 0;
+        const cnt = ln.cnt;
+        for (let k = 0; k < cnt; k++) {
+          let vx = vxs[k], vy = vys[k] + GRAV * dt;
+          let x = xs[k] + vx * dt, y = ys[k] + vy * dt;
+          if (x < x0) { x = x0; if (vx < 0) vx = -vx; }
+          else if (x > x1) { x = x1; if (vx > 0) vx = -vx; }
+          if (y < yTop) { y = yTop; if (vy < 0) vy = -vy; }
+          if (active) {
+            if (vy > 0 && y + R >= barTop) {
+              y = barTop - R;
+              hits++;
+              if (hx.length < 3) hx.push(x);
+              vy = -Math.sqrt(2 * GRAV * BOUNCE_H * (0.80 + 0.40 * r.rng()));
+              vx = vx * 0.96 + (r.rng() * 24 - 12);
+            }
+          } else if (y > yBot) { y = yBot; if (vy > 0) vy = -vy; }
+          xs[k] = x; ys[k] = y; vxs[k] = vx; vys[k] = vy;
+        }
+        if (hits > 0) {
+          ln.hitsTotal += hits;
+          ev.hits[i] += hits;
+          ln.hp[ln.level] -= hits * power;
+          if (ln.hp[ln.level] <= 0) {
+            const idx = ln.level;
+            ln.hp[idx] = 0;
+            ln.level++;
+            const change = applyRule(r, ln, idx);
+            ev.breaks.push({ lane: i, idx, y: r.barY[idx], change, last: ln.level >= r.nbars });
+            if (ln.level >= r.nbars && !ln.finished) {
+              ln.finished = true;
+              ln.finishT = r.t + (s + 1) * dt;
+              if (r.winner < 0) { r.winner = i; r.winnerT = ln.finishT; }
+            }
+          }
+        }
+      }
+    }
+    r.t += TICK; r.tick++;
+    if (!r.allDone) { let all = true; for (let i = 0; i < n; i++) if (!r.lanes[i].finished) { all = false; break; } r.allDone = all; }
+    return ev;
+  }
+  function leadGap(r) {
+    let p1 = -1, p2 = -1;
+    for (let i = 0; i < r.n; i++) { const p = laneProgress(r, r.lanes[i]); if (p > p1) { p2 = p1; p1 = p; } else if (p > p2) p2 = p; }
+    return p1 - p2;
+  }
+  function leader(r) {
+    let best = -1, bp = -1;
+    for (let i = 0; i < r.n; i++) { const p = laneProgress(r, r.lanes[i]); if (p > bp + 1e-9) { bp = p; best = i; } }
+    return best;
+  }
+  // Fast headless run of the real simulation (no rendering).
+  function runHeadless(cfg, maxT) {
+    const lim = maxT || 80;
+    const r = createRace(cfg);
+    let maxLead = 0;
+    while (true) {
+      stepRace(r);
+      if (r.winner < 0) { const g = leadGap(r); if (g > maxLead) maxLead = g; }
+      if (r.allDone || r.t > lim) break;
+    }
+    const finish = r.lanes.map(l => l.finishT === null ? Infinity : l.finishT);
+    const sorted = finish.slice().sort((a, b) => a - b);
+    return {
+      winner: r.winner, winnerT: r.winnerT === null ? Infinity : r.winnerT, finish,
+      gap: sorted.length > 1 ? sorted[1] - sorted[0] : 0, lastT: sorted[sorted.length - 1], maxLead,
+    };
+  }
+
+  // Full race plan: family, bars, colours, ladder design, probe with up to 6 seeds.
+  // opts.mode picks the family pool ('classic' | 'remix' | 'chaos' | 'all'); opts.familyIdx forces one.
+  function planRace(seed, opts) {
+    opts = opts || {};
+    const rng = mulberry32(seed >>> 0);
+    const famRoll = rng();
+    let famIdx;
+    if (opts.familyIdx !== undefined && opts.familyIdx !== null) famIdx = opts.familyIdx;
+    else { const pool = familiesFor(opts.mode || 'all'); famIdx = pool.length ? pool[Math.floor(famRoll * pool.length)] : 1; }
+    const fam = FAMILIES[famIdx];
+    const sides = opts.sides || fam.sides;
+    const n = sides.length;
+    // three and four lanes need at least seven bars: with six the exponential lanes cannot catch the
+    // linear lanes inside the 18–28 s window (measured gap 8–12 s), so the race would be decided early
+    const barRoll = rng();
+    const nbars = opts.nbars || (n >= 3 ? [7, 8][Math.floor(barRoll * 2)] : [6, 7, 8][Math.floor(barRoll * 3)]);
+    const pool = n === 2 ? PAIRS : n === 3 ? TRIPLES : QUADS;
+    const colorsKeys = pool[Math.floor(rng() * pool.length)].slice();
+    if (rng() < 0.5) colorsKeys.reverse();
+    const colors = colorsKeys.map(k => PALETTE[k]);
+    const substeps = opts.substeps || 8;
+    const base = { seed: seed >>> 0, famIdx, family: fam, sides, n, nbars, colors, colorKeys: colorsKeys, substeps };
+    let plan = planLadder(base, seed, opts, opts.gRange || [1.30, 2.27]);
+    if (!opts.gRange && (plan.probe.gap > 6 || plan.probe.maxLead > 0.40)) {
+      // the tune.py grid cannot balance this one (e.g. ÷2 BALLS over eight bars needs a flat ladder):
+      // retry with growth factors below 1.30 and keep whichever race is more open
+      const alt = planLadder(base, seed, opts, [0.70, 2.27]);
+      const v = p => Math.max(0, p.probe.maxLead - 0.40) / 0.40 + (isFinite(p.probe.gap) ? Math.max(0, p.probe.gap - 6) / 6 : 10) + (isFinite(p.probe.gap) ? p.probe.gap : 99) * 0.01;
+      if (v(alt) < v(plan)) plan = alt;
+    }
+    return plan;
+  }
+  function planLadder(base, seed, opts, gRange) {
+    const sides = base.sides, nbars = base.nbars, substeps = base.substeps;
+    const design = findLadder(sides, nbars, opts.candidates || 12, gRange);
+    // Rehearsal: run the real simulation once per candidate with an independent seed and keep the most
+    // open ladder (same score formula as the model: max lead and spread). The rehearsal seed is NOT the
+    // race seed, so the actual race stays a fresh roll – nothing is picked for a known outcome.
+    const rehearsalSeed = (Math.imul(seed ^ 0x5BD1E995, 1597334677) + 0x7F4A7C15) >>> 0;
+    // Same shape as tune.py's score, but judged on the real run: the gap between first and second
+    // counts on a 1.5 s scale (a race decided by two seconds is no guessing game any more), the
+    // distance to the last lane only a little.
+    const realScore = res => {
+      const gap = isFinite(res.gap) ? res.gap : 99;
+      const spread = isFinite(res.lastT) ? res.lastT - res.winnerT : 99;
+      return 1 - Math.min(res.maxLead / 0.40, 1) * 0.60 - Math.min(gap / 1.5, 1) * 0.40 - gap * 0.01 - Math.min(spread / 5, 1) * 0.05;
+    };
+    let ladder = design.ladder, rehearsal = null, bestReal = -Infinity;
+    for (const c of design.candidates) {
+      const res = runHeadless({ sides, nbars, ladder: c.ladder, seed: rehearsalSeed, substeps });
+      const sc = realScore(res);
+      // a candidate must beat the model's choice clearly – noise alone never changes the ladder
+      if (sc > bestReal + (rehearsal ? 0.03 : 0)) { bestReal = sc; ladder = c.ladder; rehearsal = res; }
+    }
+    // Fine tuning of the first bar (as tune.py does on the model), judged in the real simulation:
+    // the first bar is the one knob that shifts the balance between lanes with different starting rates.
+    if (!opts.noRefine) {
+      const l0 = ladder[0], tried = new Set([l0]);
+      for (const k of [0.5, 0.7, 0.85, 1.15, 1.3, 1.5, 1.75, 2.0, 2.4, 3.0]) {
+        const a0 = Math.max(4, Math.round(l0 * k));
+        if (tried.has(a0)) continue; tried.add(a0);
+        const l = ladder.slice(); l[0] = a0;
+        const res = runHeadless({ sides, nbars, ladder: l, seed: rehearsalSeed, substeps });
+        const sc = realScore(res);
+        if (sc > bestReal + 0.03) { bestReal = sc; ladder = l; rehearsal = res; }
+      }
+    }
+    const maxAttempts = opts.maxAttempts === undefined ? 6 : opts.maxAttempts;
+    let best = null, bestViol = Infinity, attempt = 0, calibrations = 0, probe = null;
+    const log = [];
+    while (attempt < Math.max(1, maxAttempts)) {
+      const raceSeed = (Math.imul(seed ^ 0x9E3779B9, 2654435761) + attempt * 104729 + 7) >>> 0;
+      const res = runHeadless({ sides, nbars, ladder, seed: raceSeed, substeps });
+      log.push({ attempt, raceSeed, winnerT: res.winnerT, gap: res.gap, maxLead: res.maxLead });
+      // calibration of the real duration (the model ignores drop time between bars and overkill)
+      if (calibrations < 3 && isFinite(res.winnerT) && (res.winnerT < WIN_MIN + 1 || res.winnerT > WIN_MAX - 1)) {
+        const f = WIN_TARGET / res.winnerT;
+        ladder = ladder.map(v => Math.max(4, Math.round(v * f)));
+        calibrations++;
+        continue;
+      }
+      const viol = Math.max(0, res.maxLead - 0.40) / 0.40 + (isFinite(res.gap) ? Math.max(0, res.gap - 6) / 6 : 10);
+      if (viol < bestViol) { bestViol = viol; best = { raceSeed, res }; }
+      if (viol === 0) break;
+      attempt++;
+    }
+    probe = best.res;
+    return Object.assign({}, base, {
+      ladder, raceSeed: best.raceSeed, probe, design: design.model, rehearsal, log, calibrations, gRange,
+    });
+  }
+  function makeRace(plan) {
+    return createRace({ sides: plan.sides, nbars: plan.nbars, ladder: plan.ladder, seed: plan.raceSeed, substeps: plan.substeps });
+  }
+
+  return {
+    W, H, GRAV, BOUNCE_H, PTOP, PBOT, FREE_TOP, TICK, RATE, MAX_BALLS, RUN_ON, WIN_MIN, WIN_MAX,
+    RULES, FAMILIES, familiesFor, PALETTE, PAIRS, TRIPLES, QUADS,
+    mulberry32, hashStr, layout, barYs, rates, curve, score, findLadder, clampState,
+    createRace, stepRace, laneProgress, leadGap, leader, runHeadless, planRace, makeRace,
+  };
+})();
+// ==SIM-END==
+</script>
+<script>
+(function () {
+  'use strict';
+  const { W, H, PTOP, PBOT, TICK, RUN_ON } = SIM;
+  const $ = id => document.getElementById(id);
+  const stage = $('stage'), canvas = $('game'), ctx = canvas.getContext('2d', { alpha: false });
+  const hud = $('hud');
+  const ui = {
+    start: $('startScreen'), result: $('resultScreen'), how: $('howScreen'), toast: $('toast'),
+    btnStart: $('btnStart'), btnDaily: $('btnDaily'), btnHow: $('btnHow'), btnHowClose: $('btnHowClose'),
+    btnNext: $('btnNext'), btnShare: $('btnShare'), btnResultHome: $('btnResultHome'), btnHome: $('btnHome'),
+    btnSpeed: $('btnSpeed'), btnSound: $('btnSound'), shareBox: $('shareBox'),
+    modeClassic: $('modeClassic'), modeRemix: $('modeRemix'), modeChaos: $('modeChaos'), modeHint: $('modeHint'),
+    stRaces: $('stRaces'), stRate: $('stRate'), stStreak: $('stStreak'), stBest: $('stBest'), todayNote: $('todayNote'),
+    verdict: $('verdict'), verdictSub: $('verdictSub'), gaps: $('gaps'), rsStreak: $('rsStreak'), rsRate: $('rsRate'), rsBest: $('rsBest'), rsToday: $('rsToday'),
+    ruleList: $('ruleList'),
+  };
+  const reduced = (() => { try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+  const isMobile = (() => { try { return Math.min(window.innerWidth, window.innerHeight) < 600 || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent); } catch (e) { return false; } })();
+  const MAX_PARTICLES = isMobile ? 220 : 520;
+  const FONT = '"Inter", "Inter Display", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+  const font = (w, px) => `${w} ${px}px ${FONT}`;
+  const fmt = n => String(Math.max(0, Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const easeOut = t => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
+  const MODE_HINT = { classic: 'The seven video families – two or three lanes.', remix: 'New math rules: squares, roots, Fibonacci, merges.', chaos: 'Four lanes at once. Good luck.' };
+
+  // ---- storage (every access guarded; the game runs without it) -------------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* no storage – fine */ } },
+  };
+  const stats = Object.assign({ races: 0, correct: 0, streak: 0, best: 0, daily: null }, store.get('bp.race.stats', {}));
+  const prefs = Object.assign({ speed: 1, sound: true, mode: 'classic' }, store.get('bp.race.prefs', {}));
+  if (!MODE_HINT[prefs.mode]) prefs.mode = 'classic';
+  const saveStats = () => store.set('bp.race.stats', stats);
+  const savePrefs = () => store.set('bp.race.prefs', prefs);
+  const todayKey = () => { const d = new Date(); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); };
+
+  // ---- colour helpers -------------------------------------------------------
+  const rgbCache = {};
+  function rgb(hex) { if (!rgbCache[hex]) rgbCache[hex] = [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)]; return rgbCache[hex]; }
+  function rgba(hex, a) { const c = rgb(hex); return `rgba(${c[0]},${c[1]},${c[2]},${a})`; }
+  function dim(hex, f) { const c = rgb(hex); return `rgb(${Math.round(c[0] * f)},${Math.round(c[1] * f)},${Math.round(c[2] * f)})`; }
+
+  // ---- audio: purely synthetic, one pitch per lane, no melody ---------------
+  const audio = {
+    ctx: null, master: null, wet: null, ready: false, lanePitch: [523, 698, 587, 659], cool: [0, 0, 0, 0],
+    pan(lane, n) { return n === 2 ? [-0.32, 0.32][lane] : n === 3 ? [-0.32, 0.32, 0][lane] : [-0.32, -0.11, 0.11, 0.32][lane]; },
+    init() {
+      if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {}); return; }
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+        const c = new AC(); this.ctx = c;
+        this.master = c.createGain(); this.master.gain.value = 0.9; this.master.connect(c.destination);
+        // light room: convolver with a short exponentially decaying impulse (the only place noise is used)
+        try {
+          const len = Math.floor(c.sampleRate * 0.28), buf = c.createBuffer(2, len, c.sampleRate);
+          let s = 1234567;
+          for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) { s = (s * 1664525 + 1013904223) >>> 0; d[i] = ((s / 4294967296) * 2 - 1) * Math.exp(-i / (len * 0.22)); } }
+          const conv = c.createConvolver(); conv.buffer = buf;
+          this.wet = c.createGain(); this.wet.gain.value = 0.22;
+          this.wet.connect(conv); conv.connect(this.master);
+        } catch (e) { this.wet = null; }
+        this.ready = true;
+        if (c.state === 'suspended') c.resume().catch(() => {});
+      } catch (e) { this.ctx = null; }
+    },
+    tone(lane, n, f, vol, decay, dur) {
+      if (!this.ready || !prefs.sound) return;
+      const c = this.ctx, t0 = c.currentTime;
+      const out = c.createGain(); out.gain.value = 1;
+      let pan = null;
+      try { if (c.createStereoPanner) { pan = c.createStereoPanner(); pan.pan.value = this.pan(lane, n) || 0; } } catch (e) { pan = null; }
+      if (pan) { out.connect(pan); pan.connect(this.master); if (this.wet) pan.connect(this.wet); }
+      else { out.connect(this.master); if (this.wet) out.connect(this.wet); }
+      const partial = (freq, v, tau) => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.linearRampToValueAtTime(v, t0 + 0.0015);
+        g.gain.setTargetAtTime(0.0001, t0 + 0.0015, tau);
+        o.connect(g); g.connect(out);
+        o.start(t0); o.stop(t0 + dur);
+      };
+      partial(f, vol, 1 / decay);
+      partial(2 * f, vol * 0.18, 1 / (decay * 142 / 75));
+    },
+    hit(lane, n, quiet) {
+      const f = this.lanePitch[lane] * (1 + (Math.random() * 0.04 - 0.02));
+      if (quiet) this.tone(lane, n, f, 0.085, 150, 0.09); else this.tone(lane, n, f, 0.34, 75, 0.30);
+    },
+    crack(lane, n, last) {
+      const f = this.lanePitch[lane] * 0.67 * (1 + (Math.random() * 0.04 - 0.02));
+      if (last) this.tone(lane, n, f, 0.6, 18, 1.1); else this.tone(lane, n, f, 0.55, 34, 0.65);
+    },
+  };
+
+  // ---- stage sizing ---------------------------------------------------------
+  let scale = 0.4, dpr = 1, bgCanvas = null;
+  function resize() {
+    const app = $('app');
+    const aw = Math.max(120, app.clientWidth - 32), ah = Math.max(200, app.clientHeight - 20);
+    scale = Math.min(aw / W, ah / H);
+    const cw = Math.floor(W * scale), ch = Math.floor(H * scale);
+    stage.style.width = cw + 'px'; stage.style.height = ch + 'px';
+    stage.style.setProperty('--s', scale.toFixed(4));
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
+    bgCanvas = null;
+    draw();
+  }
+  function buildBackground() {
+    const c = document.createElement('canvas'); c.width = canvas.width; c.height = canvas.height;
+    const g = c.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 0, c.height);
+    grad.addColorStop(0, 'rgb(14,16,30)'); grad.addColorStop(1, 'rgb(8,9,18)');
+    g.fillStyle = grad; g.fillRect(0, 0, c.width, c.height);
+    // vignette: brightness · (1.06 − 0.20·r)
+    const r = Math.hypot(c.width, c.height) / 2;
+    const v = g.createRadialGradient(c.width / 2, c.height / 2, 0, c.width / 2, c.height / 2, r);
+    v.addColorStop(0, 'rgba(255,255,255,0.045)'); v.addColorStop(0.45, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.20)');
+    g.fillStyle = v; g.fillRect(0, 0, c.width, c.height);
+    return c;
+  }
+  // slowly drifting background dots (logical coordinates)
+  const dots = [];
+  for (let i = 0; i < 46; i++) dots.push({ x: Math.random() * W, y: Math.random() * H, r: 1.2 + Math.random() * 2.2, vx: (Math.random() - 0.5) * 6, vy: -3 - Math.random() * 5, a: 0.03 + Math.random() * 0.05 });
+
+  // ---- game state -----------------------------------------------------------
+  const G = {
+    state: 'start',       // start | preview | countdown | racing | finish | result
+    mode: 'random',       // random | daily | attract
+    plan: null, race: null, pick: -1, acc: 0,
+    flashes: [], particles: [], shake: { until: 0, amp: 0, start: 0 }, countdownAt: 0, winnerAt: 0, resultShown: false, outcome: null,
+    substeps: 8, frameMs: 16, slowFrames: 0,
+    nextPlan: {}, planning: false, pulse: 0,
+    live: [], leader: -1, leaderPulse: { lane: -1, at: 0 }, trails: null, trailLen: 0, merges: [],
+    fps: 60, fpsN: 0, fpsT: 0,
+  };
+
+  function newSeed() { return (Math.floor(Math.random() * 4294967296) ^ (Date.now() & 0xffff)) >>> 0; }
+  function prefetchPlan(mode) {
+    mode = mode || prefs.mode;
+    if (G.nextPlan[mode] || G.planning) return;
+    G.planning = true;
+    setTimeout(() => { try { G.nextPlan[mode] = SIM.planRace(newSeed(), { substeps: G.substeps, mode }); } catch (e) { G.nextPlan[mode] = null; } G.planning = false; }, 30);
+  }
+  function takePlan(kind) {
+    if (kind === 'daily') return SIM.planRace(SIM.hashStr('burstpoint-' + todayKey()), { substeps: 8, mode: 'all' });
+    const mode = prefs.mode;
+    let p = G.nextPlan[mode]; G.nextPlan[mode] = null;
+    if (!p || p.substeps !== G.substeps) p = SIM.planRace(newSeed(), { substeps: G.substeps, mode });
+    setTimeout(() => prefetchPlan(mode), 400);
+    return p;
+  }
+  function setupRace(plan, kind) {
+    G.plan = plan; G.mode = kind; G.race = SIM.makeRace(plan);
+    G.pick = -1; G.acc = 0; G.flashes = []; G.particles = []; G.merges = []; G.resultShown = false; G.outcome = null;
+    G.leader = -1; G.leaderPulse = { lane: -1, at: 0 };
+    audio.cool = [0, 0, 0, 0];
+    G.live = G.race.lanes.map(ln => ({ balls: ln.cnt, power: ln.power, at: -1e9, what: '' }));
+    G.trails = G.race.lanes.map(() => ({ x: [new Float32Array(SIM.MAX_BALLS), new Float32Array(SIM.MAX_BALLS), new Float32Array(SIM.MAX_BALLS)], y: [new Float32Array(SIM.MAX_BALLS), new Float32Array(SIM.MAX_BALLS), new Float32Array(SIM.MAX_BALLS)], n: [0, 0, 0] }));
+  }
+  function startAttract() {
+    setupRace(SIM.planRace(newSeed(), { substeps: G.substeps, maxAttempts: 1, candidates: 4, noRefine: true, mode: 'all' }), 'attract');
+    G.state = 'start';
+  }
+
+  function openPreview(kind) {
+    const plan = takePlan(kind);
+    setupRace(plan, kind);
+    G.state = 'preview';
+    show(ui.start, false); show(ui.result, false); show(ui.how, false);
+    hud.classList.remove('hidden');
+  }
+  function pickLane(i) {
+    if (G.state !== 'preview' || i < 0 || i >= G.race.n) return;
+    G.pick = i; G.state = 'countdown'; G.countdownAt = performance.now();
+  }
+  function beginRacing() { G.state = 'racing'; G.acc = 0; }
+
+  function onRaceWon() {
+    const r = G.race;
+    const correct = G.pick === r.winner;
+    stats.races++; if (correct) stats.correct++;
+    const prevStreak = stats.streak;
+    stats.streak = correct ? stats.streak + 1 : 0;
+    if (stats.streak > stats.best) stats.best = stats.streak;
+    let dailyFirst = false;
+    if (G.mode === 'daily') {
+      const key = todayKey();
+      if (!stats.daily || stats.daily.date !== key) { stats.daily = { date: key, called: correct }; dailyFirst = true; }
+    }
+    saveStats();
+    G.outcome = { correct, prevStreak, dailyFirst, winner: r.winner };
+    if (correct && navigator.vibrate) { try { navigator.vibrate(reduced ? 12 : [12, 40, 12]); } catch (e) {} }
+  }
+
+  // ---- particles ------------------------------------------------------------
+  function addParticle(p) { if (reduced) return; if (G.particles.length >= MAX_PARTICLES) G.particles.shift(); G.particles.push(p); }
+  function shards(lane, y, col, strong) {
+    const ln = G.race.lanes[lane], n = strong ? 24 : 14 + Math.floor(Math.random() * 6);
+    for (let i = 0; i < n; i++) {
+      const x = ln.x0 + Math.random() * (ln.x1 - ln.x0);
+      addParticle({ kind: 'shard', x, y, vx: (Math.random() - 0.5) * 420, vy: -120 - Math.random() * 420, w: 6 + Math.random() * 14, h: 3 + Math.random() * 4, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 12, col, life: 0.55 + Math.random() * 0.35, age: 0 });
+    }
+  }
+  function dust(x, y, col) {
+    addParticle({ kind: 'dust', x: x + (Math.random() - 0.5) * 10, y: y - 3, vx: (Math.random() - 0.5) * 90, vy: -30 - Math.random() * 60, w: 2.2, h: 2.2, rot: 0, vr: 0, col, life: 0.25 + Math.random() * 0.2, age: 0 });
+  }
+  function confetti(x, y, cols, n, spread) {
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * (spread || 1.6), sp = 420 + Math.random() * 620;
+      addParticle({ kind: 'confetti', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, w: 8 + Math.random() * 10, h: 5 + Math.random() * 6, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 16, col: cols[i % cols.length], life: 1.4 + Math.random() * 0.8, age: 0, drag: 0.985 });
+    }
+  }
+  function shake(amp, ms) { if (reduced) return; const now = performance.now(); G.shake = { until: now + ms, amp, start: now }; }
+  function updateParticles(dt) {
+    const ps = G.particles;
+    for (let i = ps.length - 1; i >= 0; i--) {
+      const p = ps[i];
+      p.age += dt; if (p.age >= p.life) { ps.splice(i, 1); continue; }
+      p.vy += (p.kind === 'confetti' ? 1400 : 2600) * dt;
+      if (p.drag) { p.vx *= p.drag; p.vy *= p.drag; }
+      p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
+    }
+  }
+
+  // ---- fixed-step advance ---------------------------------------------------
+  function advance(dtReal) {
+    const r = G.race; if (!r) return;
+    const live = G.state === 'racing' || G.state === 'finish';
+    if (!(live || G.state === 'start')) return;
+    if (r.winnerT !== null && r.t >= r.winnerT + RUN_ON) {
+      if (G.state === 'start') { startAttract(); }
+      return;
+    }
+    const speed = G.state === 'start' ? 1 : prefs.speed;
+    G.acc += Math.min(0.1, dtReal) * speed;
+    let steps = 0;
+    while (G.acc >= TICK && steps < 6) {
+      const ev = SIM.stepRace(r);
+      G.acc -= TICK; steps++;
+      handleEvents(ev);
+    }
+    if (G.acc > TICK) G.acc = 0; // never let the race lag behind when the tab stutters
+  }
+  function handleEvents(ev) {
+    const r = G.race, plan = G.plan;
+    const live = G.state === 'racing' || G.state === 'finish';
+    for (let i = 0; i < r.n; i++) {
+      if (audio.cool[i] > 0) audio.cool[i]--;
+      if (ev.hits[i] > 0) {
+        if (live) {
+          if (audio.cool[i] <= 0) { audio.hit(i, r.n, false); audio.cool[i] = 3; }
+          else if (ev.hits[i] >= 2 && (r.tick & 1)) audio.hit(i, r.n, true);
+        }
+        if (!reduced && r.lanes[i].level < r.nbars && (r.tick & 1) === 0) {
+          const by = r.barY[r.lanes[i].level];
+          const hx = ev.hitX[i]; for (let k = 0; k < Math.min(2, hx.length); k++) dust(hx[k], by - 4, plan.colors[i]);
+        }
+      }
+    }
+    for (const b of ev.breaks) {
+      if (!reduced) {
+        G.flashes.push({ lane: b.lane, y: b.y, life: 12 });
+        shards(b.lane, b.y, plan.colors[b.lane], b.last);
+        shake(b.last ? 5 : 3, b.last ? 260 : 150);
+        if (r.sides[b.lane].rule.merge && b.change.balls[0] > b.change.balls[1]) mergeEffect(b.lane, b.y);
+      }
+      const lv = G.live[b.lane];
+      const ln = r.lanes[b.lane];
+      lv.what = (ln.power !== lv.power ? 'p' : '') + (ln.cnt !== lv.balls && ln.level < r.nbars ? 'b' : '');
+      lv.power = ln.power; lv.balls = ln.level < r.nbars ? ln.cnt : lv.balls; lv.at = performance.now();
+      if (live) {
+        audio.crack(b.lane, r.n, b.last);
+        if (b.lane === G.pick && navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
+      }
+    }
+    // lead changes
+    if (r.winner < 0) {
+      const ld = SIM.leader(r);
+      if (ld !== G.leader) { if (G.leader >= 0) G.leaderPulse = { lane: ld, at: performance.now() }; G.leader = ld; }
+    }
+    if (live && r.winner >= 0 && G.state === 'racing') {
+      G.state = 'finish'; G.winnerAt = performance.now();
+      const ln = r.lanes[r.winner];
+      confetti((ln.x0 + ln.x1) / 2, PTOP + (PBOT - PTOP) * 0.42, [plan.colors[r.winner], '#ffffff'], isMobile ? 46 : 80, 2.2);
+      shake(6, 300);
+      onRaceWon();
+    } else if (r.winner >= 0 && G.state === 'start' && G.winnerAt === 0) { G.winnerAt = performance.now(); }
+  }
+  function mergeEffect(lane, y) {
+    const ln = G.race.lanes[lane];
+    // ghost balls that contract into the surviving ball (visual only; the simulation already merged them)
+    const tx = ln.xs[0], ty = ln.ys[0], ghosts = [];
+    for (let i = 0; i < 24; i++) ghosts.push({ x: ln.x0 + 20 + Math.random() * (ln.x1 - ln.x0 - 40), y: y - 30 - Math.random() * 220 });
+    G.merges.push({ lane, ghosts, tx, ty, age: 0, life: 0.45 });
+  }
+
+  // ---- drawing --------------------------------------------------------------
+  function rr(x, y, w, h, rad) {
+    const r = Math.min(rad, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r); ctx.closePath();
+  }
+  function fitFont(weight, px, text, maxW) {
+    ctx.font = font(weight, px);
+    const w = ctx.measureText(text).width;
+    if (w > maxW) { px = Math.max(18, Math.floor(px * maxW / w)); ctx.font = font(weight, px); }
+    return px;
+  }
+  function crackSeed(a, b) { let h = (a * 73856093) ^ (b * 19349663); h = Math.imul(h ^ (h >>> 13), 0x5bd1e995); return () => { h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d); return ((h >>> 0) % 10000) / 10000; }; }
+  function drawLiveLine(cx, y, lane, col, n, now) {
+    const lv = G.live[lane], ln = G.race.lanes[lane];
+    const age = (now - lv.at) / 200, pop = !reduced && age < 1 ? 1.25 - 0.25 * easeOut(age) : 1;
+    const flash = !reduced && age < 2 ? 1 - age / 2 : 0;
+    const px = n === 2 ? 26 : n === 3 ? 22 : 20;
+    const balls = ln.level < G.race.nbars ? ln.cnt : lv.balls;
+    const bTxt = balls + (balls === 1 ? ' ball' : ' balls'), pTxt = '×' + fmt(ln.power) + ' power', sep = ' · ';
+    ctx.save(); ctx.translate(cx, y); ctx.scale(pop, pop);
+    ctx.font = font(700, px);
+    const wb = ctx.measureText(bTxt).width, ws = ctx.measureText(sep).width, wp = ctx.measureText(pTxt).width;
+    let x = -(wb + ws + wp) / 2;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = lv.what.indexOf('b') >= 0 && flash ? rgba(col, 0.5 + 0.5 * flash) : 'rgba(255,255,255,0.5)'; ctx.fillText(bTxt, x, 0); x += wb;
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillText(sep, x, 0); x += ws;
+    ctx.fillStyle = lv.what.indexOf('p') >= 0 && flash ? rgba(col, 0.5 + 0.5 * flash) : 'rgba(255,255,255,0.5)'; ctx.fillText(pTxt, x, 0);
+    ctx.restore(); ctx.textAlign = 'center';
+  }
+  function draw() {
+    const now = performance.now();
+    if (!bgCanvas) bgCanvas = buildBackground();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(bgCanvas, 0, 0);
+    const k = scale * dpr;
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    const r = G.race; if (!r) return;
+    const plan = G.plan, n = r.n, lay = r.lay, thick = lay.thick, R = r.R;
+    const inRace = G.state === 'racing' || G.state === 'finish' || G.state === 'result';
+    const dimAll = G.state === 'start';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // background: drifting dots + faint lane-coloured glow at the bottom
+    if (!reduced) {
+      ctx.fillStyle = 'rgba(255,255,255,1)';
+      for (const d of dots) { ctx.globalAlpha = d.a; ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 6.2832); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
+    for (let i = 0; i < n; i++) {
+      const cx = (r.lanes[i].x0 + r.lanes[i].x1) / 2;
+      const g = ctx.createRadialGradient(cx, H + 60, 0, cx, H + 60, 520);
+      g.addColorStop(0, rgba(plan.colors[i], n === 4 ? 0.07 : 0.085)); g.addColorStop(1, rgba(plan.colors[i], 0));
+      ctx.fillStyle = g; ctx.fillRect(0, H - 540, W, 540);
+    }
+    // camera shake
+    let sx = 0, sy = 0;
+    if (now < G.shake.until) { const f = 1 - (now - G.shake.start) / (G.shake.until - G.shake.start); sx = (Math.random() - 0.5) * 2 * G.shake.amp * f; sy = (Math.random() - 0.5) * 2 * G.shake.amp * f; }
+    ctx.translate(sx, sy);
+    ctx.globalAlpha = dimAll ? 0.8 : 1;
+    const bigBall = n === 2;
+    const totalBalls = r.lanes.reduce((a, l) => a + l.cnt, 0);
+    const ghostCount = reduced ? 0 : totalBalls > 600 ? 1 : totalBalls > 250 ? 2 : 3;
+
+    for (let i = 0; i < n; i++) {
+      const ln = r.lanes[i], col = plan.colors[i], x0 = ln.x0, x1 = ln.x1, pw = x1 - x0, cx = x0 + pw / 2;
+      const picked = G.pick === i && !dimAll;
+      const loser = r.winner >= 0 && r.winner !== i && inRace;
+      // lane body
+      rr(x0, PTOP, pw, PBOT - PTOP, 20);
+      ctx.fillStyle = rgba(col, picked ? 0.07 : 0.035); ctx.fill();
+      let strokeA = picked ? 0.95 : 0.18, lw = picked ? 4 : 2;
+      if (!reduced && G.leaderPulse.lane === i) { const a = (now - G.leaderPulse.at) / 500; if (a < 1) { strokeA = Math.max(strokeA, 0.9 * (1 - a)); lw = Math.max(lw, 3); } }
+      ctx.lineWidth = lw; ctx.strokeStyle = rgba(col, strokeA);
+      if (picked && !reduced) { ctx.shadowColor = col; ctx.shadowBlur = 28; }
+      ctx.stroke(); ctx.shadowBlur = 0;
+      // header
+      ctx.fillStyle = col;
+      const rule = ln.side.rule;
+      if (n === 2) { fitFont(800, 66, rule.label, pw - 16); ctx.fillText(rule.label, cx, 232); }
+      else if (n === 3) {
+        fitFont(800, rule.bottom ? 64 : 56, rule.top, pw - 12); ctx.fillText(rule.top, cx, rule.bottom ? 216 : 238);
+        if (rule.bottom) { fitFont(700, 30, rule.bottom, pw - 12); ctx.fillText(rule.bottom, cx, 264); }
+      } else {
+        fitFont(800, rule.bottom ? 50 : 44, rule.top, pw - 10); ctx.fillText(rule.top, cx, rule.bottom ? 218 : 236);
+        if (rule.bottom) { fitFont(700, 24, rule.bottom, pw - 10); ctx.fillText(rule.bottom, cx, 258); }
+      }
+      drawLiveLine(cx, n === 2 ? 290 : 296, i, col, n, now);
+      if (picked) {
+        ctx.font = font(700, n === 4 ? 17 : 20);
+        const tw = n === 4 ? 140 : 172;
+        rr(cx - tw / 2, PTOP + 14, tw, 34, 17); ctx.fillStyle = rgba(col, 0.16); ctx.fill();
+        ctx.fillStyle = col; ctx.fillText('YOUR PICK', cx, PTOP + 31);
+      }
+      // bars
+      for (let b = ln.level; b < r.nbars; b++) {
+        const by = r.barY[b];
+        if (b === ln.level) {
+          const frac = Math.max(0, ln.hp[b]) / r.ladder[b];
+          ctx.fillStyle = dim(col, 0.2); ctx.fillRect(x0, by - thick / 2, pw, thick);
+          ctx.fillStyle = col;
+          if (!reduced) { ctx.shadowColor = col; ctx.shadowBlur = 16; }
+          ctx.fillRect(x0, by - thick / 2, pw * frac, thick); ctx.shadowBlur = 0;
+          // cracks grow with the damage
+          const dmg = 1 - frac;
+          if (dmg > 0.04) {
+            const cr = crackSeed(i + 1, b + 1), nc = Math.min(26, Math.floor(dmg * 28));
+            ctx.strokeStyle = 'rgba(6,8,16,0.75)'; ctx.lineWidth = 1.2; ctx.beginPath();
+            for (let q = 0; q < nc; q++) {
+              const px = x0 + cr() * pw, j = (cr() - 0.5) * 6;
+              ctx.moveTo(px, by - thick / 2); ctx.lineTo(px + j, by); ctx.lineTo(px + j * 0.4, by + thick / 2);
+            }
+            ctx.stroke();
+          }
+          ctx.fillStyle = '#ffffff'; ctx.font = font(700, n === 4 ? 28 : 34); ctx.fillText(fmt(ln.hp[b]), cx, by - 26);
+        } else {
+          ctx.fillStyle = rgba(col, 0.32); ctx.fillRect(x0, by - thick / 2, pw, thick);
+          ctx.fillStyle = 'rgba(255,255,255,0.44)'; ctx.font = font(700, n === 4 ? 24 : 28); ctx.fillText(fmt(r.ladder[b]), cx, by - 22);
+        }
+      }
+      // floor
+      ctx.save(); ctx.setLineDash([10, 10]); ctx.strokeStyle = 'rgba(255,255,255,0.24)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x0 + 12, PBOT - 1); ctx.lineTo(x1 - 12, PBOT - 1); ctx.stroke(); ctx.restore();
+      // balls: trail ghosts, halo pass, body pass, highlight pass – one path each
+      const cnt = ln.cnt, xs = ln.xs, ys = ln.ys;
+      const tr = G.trails[i];
+      if (ghostCount > 0 && !dimAll) {
+        for (let g = ghostCount - 1; g >= 0; g--) {
+          const gn = Math.min(tr.n[g], cnt); if (gn === 0) continue;
+          const gr = R * (0.85 - g * 0.18);
+          ctx.beginPath();
+          for (let q = 0; q < gn; q++) { ctx.moveTo(tr.x[g][q] + gr, tr.y[g][q]); ctx.arc(tr.x[g][q], tr.y[g][q], gr, 0, 6.2832); }
+          ctx.fillStyle = rgba(col, [0.26, 0.15, 0.07][g]); ctx.fill();
+        }
+      }
+      if (cnt > 0) {
+        if (!reduced) {
+          ctx.beginPath();
+          const hr = R * 2.1;
+          for (let q = 0; q < cnt; q++) { ctx.moveTo(xs[q] + hr, ys[q]); ctx.arc(xs[q], ys[q], hr, 0, 6.2832); }
+          ctx.fillStyle = rgba(col, cnt > 120 ? 0.10 : 0.20); ctx.fill();
+        }
+        ctx.beginPath();
+        for (let q = 0; q < cnt; q++) { ctx.moveTo(xs[q] + R, ys[q]); ctx.arc(xs[q], ys[q], R, 0, 6.2832); }
+        ctx.fillStyle = col; ctx.fill();
+        const hR = R * 0.28, off = R * 0.34;
+        ctx.beginPath();
+        for (let q = 0; q < cnt; q++) { ctx.moveTo(xs[q] - off + hR, ys[q] - off); ctx.arc(xs[q] - off, ys[q] - off, hR, 0, 6.2832); }
+        ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
+      }
+      // shift trail history (render side only)
+      if (!reduced) {
+        const t2 = tr.x[2], t2y = tr.y[2]; tr.x[2] = tr.x[1]; tr.y[2] = tr.y[1]; tr.n[2] = tr.n[1];
+        tr.x[1] = tr.x[0]; tr.y[1] = tr.y[0]; tr.n[1] = tr.n[0];
+        tr.x[0] = t2; tr.y[0] = t2y; tr.n[0] = cnt;
+        for (let q = 0; q < cnt; q++) { t2[q] = xs[q]; t2y[q] = ys[q]; }
+      }
+      // loser lanes dim slightly after the finish
+      if (loser) { rr(x0, PTOP, pw, PBOT - PTOP, 20); ctx.fillStyle = 'rgba(8,9,18,0.42)'; ctx.fill(); }
+      // progress bar (top)
+      if (inRace || G.state === 'countdown') {
+        const p = SIM.laneProgress(r, ln);
+        rr(x0, 128, pw, 10, 5); ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill();
+        if (p > 0) { rr(x0, 128, Math.max(10, pw * p), 10, 5); ctx.fillStyle = col; ctx.fill(); }
+        const tags = [];
+        if (G.pick === i) tags.push('YOU');
+        if (G.leader === i && r.winner < 0 && G.state !== 'countdown') tags.push('LEAD');
+        if (tags.length) {
+          const txt = tags.join(' · ');
+          ctx.font = font(700, 18); const tw = ctx.measureText(txt).width + 22;
+          rr(cx - tw / 2, 98, tw, 26, 13); ctx.fillStyle = rgba(col, tags.indexOf('LEAD') >= 0 ? 0.28 : 0.14); ctx.fill();
+          ctx.fillStyle = col; ctx.fillText(txt, cx, 111);
+        }
+      }
+    }
+    // merge ghosts
+    for (let m = G.merges.length - 1; m >= 0; m--) {
+      const mg = G.merges[m], f = easeOut(mg.age / mg.life), col = plan.colors[mg.lane], ln = r.lanes[mg.lane];
+      const tx = ln.xs[0], ty = ln.ys[0];
+      ctx.fillStyle = rgba(col, 0.7 * (1 - f)); ctx.beginPath();
+      for (const g of mg.ghosts) { const x = g.x + (tx - g.x) * f, y = g.y + (ty - g.y) * f; ctx.moveTo(x + R, y); ctx.arc(x, y, R * (1 - 0.5 * f), 0, 6.2832); }
+      ctx.fill();
+      if (mg.age >= mg.life) G.merges.splice(m, 1);
+    }
+    // break flashes
+    for (let f = G.flashes.length - 1; f >= 0; f--) {
+      const fl = G.flashes[f], ln = r.lanes[fl.lane];
+      const a = fl.life / 12;
+      ctx.fillStyle = `rgba(255,255,255,${(0.85 * a).toFixed(3)})`;
+      ctx.fillRect(ln.x0, fl.y - 7 - 6 * (1 - a), ln.x1 - ln.x0, 14 + 12 * (1 - a));
+      if (G.state !== 'result') fl.life--;
+      if (fl.life <= 0) G.flashes.splice(f, 1);
+    }
+    // particles
+    for (const p of G.particles) {
+      const a = p.kind === 'dust' ? 0.6 * (1 - p.age / p.life) : Math.min(1, 2.5 * (1 - p.age / p.life));
+      ctx.fillStyle = p.col; ctx.globalAlpha = a * (dimAll ? 0.8 : 1);
+      if (p.kind === 'dust') { ctx.fillRect(p.x - 1, p.y - 1, p.w, p.h); }
+      else { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore(); }
+    }
+    ctx.globalAlpha = dimAll ? 0.8 : 1;
+    // winner plaque (slides in)
+    if (r.winner >= 0 && (inRace || dimAll)) {
+      const ln = r.lanes[r.winner], col = plan.colors[r.winner], cx = (ln.x0 + ln.x1) / 2, pw = ln.x1 - ln.x0;
+      const age = reduced ? 1 : Math.min(1, (now - G.winnerAt) / 320);
+      const e = easeOut(age);
+      const bw = Math.min(pw * 0.86, 380), bh = n === 4 ? 96 : 118, by = PTOP + (PBOT - PTOP) * 0.40 - (1 - e) * 140;
+      ctx.globalAlpha *= e;
+      rr(cx - bw / 2, by - bh / 2, bw, bh, 18);
+      ctx.fillStyle = 'rgba(10,12,24,0.91)'; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = col; if (!reduced) { ctx.shadowColor = col; ctx.shadowBlur = 22; } ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.fillStyle = col; fitFont(800, 52, 'WINNER', bw - 24); ctx.fillText('WINNER', cx, by + 2);
+      ctx.globalAlpha = dimAll ? 0.8 : 1;
+    }
+    ctx.translate(-sx, -sy);
+    // prompts
+    if (G.state === 'preview') {
+      const a = reduced ? 0.9 : 0.6 + 0.35 * Math.sin(G.pulse * 4);
+      ctx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`; ctx.font = font(800, 44); ctx.fillText('TAP A LANE', W / 2, 150);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = font(600, 24); ctx.fillText('Which lane clears every bar first?', W / 2, 196);
+    }
+    if (G.state === 'countdown') {
+      const el = (now - G.countdownAt) / 1000;
+      const idx = Math.min(2, Math.floor(el / 0.5)), frac = (el - idx * 0.5) / 0.5;
+      const num = 3 - idx;
+      const s = reduced ? 1 : 1.25 - 0.25 * Math.min(1, frac * 2.5);
+      ctx.save(); ctx.translate(W / 2, 1010); ctx.scale(s, s);
+      ctx.fillStyle = `rgba(255,255,255,${reduced ? 0.95 : (1 - frac * 0.6).toFixed(3)})`;
+      ctx.font = font(800, 260); ctx.fillText(String(num), 0, 0); ctx.restore();
+    }
+    // watermark
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.font = font(600, 30); ctx.fillText('burstpoint', W / 2, 1868);
+    ctx.globalAlpha = 1;
+  }
+
+  // ---- result overlay -------------------------------------------------------
+  function showResult() {
+    const r = G.race, plan = G.plan, o = G.outcome; if (!o) return;
+    G.state = 'result'; G.resultShown = true;
+    ui.verdict.textContent = o.correct ? 'CALLED IT' : 'NOT THIS TIME';
+    ui.verdict.classList.remove('ok', 'miss'); void ui.verdict.offsetWidth;
+    ui.verdict.classList.add(o.correct ? 'ok' : 'miss');
+    if (o.correct && !reduced) confetti(W / 2, 120, Object.values(SIM.PALETTE), isMobile ? 70 : 130, 2.6);
+    const wl = plan.sides[r.winner].rule.label;
+    ui.verdictSub.innerHTML = `<span style="color:${plan.colors[r.winner]}">${wl}</span> took it · ${plan.family.name} · ${r.nbars} bars`;
+    // finish times: live where the lane finished, otherwise from the identical headless run
+    const times = r.lanes.map((ln, i) => ln.finishT !== null ? ln.finishT : plan.probe.finish[i]);
+    const order = times.map((t, i) => i).sort((a, b) => times[a] - times[b]);
+    const first = times[order[0]];
+    ui.gaps.innerHTML = '';
+    order.forEach((i, pos) => {
+      const row = document.createElement('div');
+      row.className = 'gap-row' + (pos === 0 ? ' win' : '');
+      const t = times[i];
+      const gap = !isFinite(t) ? 'did not finish' : pos === 0 ? t.toFixed(1) + ' s' : '+' + (t - first).toFixed(2) + ' s';
+      row.innerHTML = `<span class="lbl"><span class="dot" style="background:${plan.colors[i]}"></span><span style="color:${plan.colors[i]}">${plan.sides[i].rule.label}</span>${i === G.pick ? '<span class="you">YOUR PICK</span>' : ''}</span><span class="time">${gap}</span>`;
+      ui.gaps.appendChild(row);
+    });
+    ui.rsStreak.innerHTML = o.correct ? `<span class="streak-up">${stats.streak} ▲</span>` : (o.prevStreak > 0 ? `broken (was ${o.prevStreak})` : '0');
+    ui.rsRate.textContent = stats.races ? Math.round(100 * stats.correct / stats.races) + '%' : '–';
+    ui.rsBest.textContent = String(stats.best);
+    if (G.mode === 'daily') {
+      ui.rsToday.textContent = o.dailyFirst ? (o.correct ? 'Today: called it ✓' : 'Today: missed – back tomorrow') : (stats.daily && stats.daily.called ? 'Today: called it ✓ (first try counts)' : 'Today: missed (first try counts)');
+      ui.rsToday.classList.toggle('miss', !(stats.daily && stats.daily.called));
+      show(ui.rsToday, true);
+    } else show(ui.rsToday, false);
+    ui.shareBox.classList.remove('show');
+    ui.btnNext.textContent = G.mode === 'daily' ? 'Random race' : 'Next race';
+    show(ui.result, true);
+    hud.classList.add('hidden');
+    try { ui.btnNext.focus({ preventScroll: true }); } catch (e) {}
+  }
+  function shareText() {
+    const s = stats.streak;
+    if (s >= 2) return `I called ${s} Burstpoint races in a row 🎯 burstpoint on Instagram: @burstpointlab`;
+    if (s === 1) return `I called the Burstpoint race 🎯 burstpoint on Instagram: @burstpointlab`;
+    return `Hit rate ${stats.races ? Math.round(100 * stats.correct / stats.races) : 0}% over ${stats.races} Burstpoint races 🎯 burstpoint on Instagram: @burstpointlab`;
+  }
+  function share() {
+    const text = shareText();
+    const fallback = () => { ui.shareBox.value = text; ui.shareBox.classList.add('show'); try { ui.shareBox.focus(); ui.shareBox.select(); } catch (e) {} toast('Copy the text below'); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard'), fallback);
+      else fallback();
+    } catch (e) { fallback(); }
+  }
+
+  // ---- start screen ---------------------------------------------------------
+  let countAnim = 0;
+  function countUp(el, target, suffix) {
+    const t0 = performance.now(), dur = reduced ? 0 : 650;
+    const id = ++countAnim;
+    const step = () => {
+      if (id !== countAnim) return;
+      const f = dur ? easeOut((performance.now() - t0) / dur) : 1;
+      el.textContent = Math.round(target * f) + (suffix || '');
+      if (f < 1) requestAnimationFrame(step);
+    };
+    step();
+  }
+  function refreshStart(animate) {
+    if (animate && !reduced) {
+      countAnim++; const id = countAnim;
+      const items = [[ui.stRaces, stats.races, ''], [ui.stStreak, stats.streak, ''], [ui.stBest, stats.best, '']];
+      if (stats.races) items.push([ui.stRate, Math.round(100 * stats.correct / stats.races), '%']); else ui.stRate.textContent = '–';
+      const t0 = performance.now();
+      const step = () => { if (id !== countAnim) return; const f = easeOut((performance.now() - t0) / 650); for (const it of items) it[0].textContent = Math.round(it[1] * f) + it[2]; if (f < 1) requestAnimationFrame(step); };
+      step();
+    } else {
+      ui.stRaces.textContent = String(stats.races);
+      ui.stRate.textContent = stats.races ? Math.round(100 * stats.correct / stats.races) + '%' : '–';
+      ui.stStreak.textContent = String(stats.streak);
+      ui.stBest.textContent = String(stats.best);
+    }
+    const d = stats.daily;
+    if (d && d.date === todayKey()) {
+      ui.todayNote.textContent = d.called ? 'Today: called it ✓' : 'Today: not this time – new race tomorrow';
+      ui.todayNote.classList.toggle('miss', !d.called); show(ui.todayNote, true);
+      ui.btnDaily.textContent = "Replay today's race";
+    } else { show(ui.todayNote, false); ui.btnDaily.textContent = "Today's race"; }
+    syncModes();
+  }
+  function syncModes() {
+    for (const [el, m] of [[ui.modeClassic, 'classic'], [ui.modeRemix, 'remix'], [ui.modeChaos, 'chaos']]) {
+      const avail = SIM.familiesFor(m).length > 0;
+      el.disabled = !avail; el.style.opacity = avail ? '' : '0.4';
+      el.setAttribute('aria-pressed', prefs.mode === m ? 'true' : 'false');
+    }
+    const k = SIM.familiesFor(prefs.mode).length;
+    ui.modeHint.textContent = MODE_HINT[prefs.mode] + ' (' + k + (k === 1 ? ' family)' : ' families)');
+  }
+  function setMode(m) { if (!SIM.familiesFor(m).length) { toast('No fair family in this mode yet'); return; } prefs.mode = m; savePrefs(); syncModes(); prefetchPlan(m); }
+  if (!SIM.familiesFor(prefs.mode).length) prefs.mode = 'classic';
+  function goHome() {
+    G.state = 'start'; G.pick = -1;
+    show(ui.result, false); show(ui.how, false); show(ui.start, true);
+    hud.classList.add('hidden');
+    refreshStart(true);
+    if (!G.race || G.mode !== 'attract' || (G.race.winnerT !== null)) startAttract();
+    try { ui.btnStart.focus({ preventScroll: true }); } catch (e) {}
+  }
+  function show(el, on) { el.classList.toggle('hidden', !on); }
+  let toastTimer = 0;
+  function toast(msg) { ui.toast.textContent = msg; ui.toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => ui.toast.classList.remove('show'), 1800); }
+  function buildRuleList() {
+    const groups = [['Classic', 'classic'], ['Remix', 'remix'], ['Chaos', 'chaos']];
+    const seen = new Set(); let html = '';
+    for (const [title, mode] of groups) {
+      const rules = [];
+      SIM.FAMILIES.filter(f => f.fair && f.mode === mode).forEach(f => f.sides.forEach(s => { if (!seen.has(s.rule.id)) { seen.add(s.rule.id); rules.push(s.rule); } }));
+      if (!rules.length) continue;
+      html += `<h3>${title}</h3>` + rules.map(r => `<li><b>${r.label}</b> – ${r.sub}.</li>`).join('');
+    }
+    ui.ruleList.innerHTML = html;
+  }
+
+  function syncButtons() {
+    ui.btnSpeed.textContent = '⏩ ' + prefs.speed + '×';
+    ui.btnSpeed.setAttribute('aria-pressed', prefs.speed === 2 ? 'true' : 'false');
+    ui.btnSpeed.classList.toggle('on', prefs.speed === 2);
+    ui.btnSound.textContent = prefs.sound ? '🔊' : '🔇';
+    ui.btnSound.setAttribute('aria-pressed', prefs.sound ? 'true' : 'false');
+    ui.btnSound.classList.toggle('off', !prefs.sound);
+  }
+
+  // ---- input ----------------------------------------------------------------
+  function laneAt(clientX) {
+    const rect = canvas.getBoundingClientRect();
+    const lx = (clientX - rect.left) / rect.width * W;
+    const r = G.race; if (!r) return -1;
+    let best = -1, bd = Infinity;
+    for (let i = 0; i < r.n; i++) { const ln = r.lanes[i]; const d = lx < ln.x0 ? ln.x0 - lx : lx > ln.x1 ? lx - ln.x1 : 0; if (d < bd) { bd = d; best = i; } }
+    return bd <= 40 ? best : -1;
+  }
+  canvas.addEventListener('pointerdown', e => {
+    audio.init();
+    if (G.state === 'preview') { const i = laneAt(e.clientX); if (i >= 0) pickLane(i); }
+    else if (G.state === 'finish' && G.outcome && performance.now() - G.winnerAt > 600) showResult();
+  });
+  document.addEventListener('pointerdown', () => audio.init(), { passive: true });
+  document.addEventListener('keydown', e => {
+    if (e.key >= '1' && e.key <= '4') { if (G.state === 'preview') { audio.init(); pickLane(parseInt(e.key, 10) - 1); } }
+    else if (e.key === 'Escape') { if (!ui.how.classList.contains('hidden')) show(ui.how, false); else if (G.state !== 'start' && G.state !== 'result') goHome(); }
+    else if (e.key === 'Enter' && G.state === 'start' && document.activeElement === document.body) { audio.init(); openPreview('random'); }
+  });
+  ui.btnStart.addEventListener('click', () => { audio.init(); openPreview('random'); });
+  ui.btnDaily.addEventListener('click', () => { audio.init(); ui.btnDaily.textContent = 'Preparing…'; setTimeout(() => openPreview('daily'), 20); });
+  ui.btnHow.addEventListener('click', () => { show(ui.how, true); try { ui.btnHowClose.focus({ preventScroll: true }); } catch (e) {} });
+  ui.btnHowClose.addEventListener('click', () => { show(ui.how, false); try { ui.btnHow.focus({ preventScroll: true }); } catch (e) {} });
+  ui.btnNext.addEventListener('click', () => { audio.init(); openPreview('random'); });
+  ui.btnShare.addEventListener('click', share);
+  ui.btnResultHome.addEventListener('click', goHome);
+  ui.btnHome.addEventListener('click', goHome);
+  ui.btnSpeed.addEventListener('click', () => { prefs.speed = prefs.speed === 1 ? 2 : 1; savePrefs(); syncButtons(); });
+  ui.btnSound.addEventListener('click', () => { prefs.sound = !prefs.sound; savePrefs(); syncButtons(); if (prefs.sound) audio.init(); });
+  ui.modeClassic.addEventListener('click', () => setMode('classic'));
+  ui.modeRemix.addEventListener('click', () => setMode('remix'));
+  ui.modeChaos.addEventListener('click', () => setMode('chaos'));
+
+  // ---- main loop ------------------------------------------------------------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    G.pulse += dt;
+    // fps bookkeeping + watchdog: a phone that cannot hold 30 fps gets 4 substeps for the next races
+    G.fpsN++; if (now - G.fpsT > 1000) { G.fps = G.fpsN * 1000 / (now - G.fpsT); G.fpsN = 0; G.fpsT = now; }
+    G.frameMs = G.frameMs * 0.9 + (dt * 1000) * 0.1;
+    if (G.state === 'racing') { if (G.frameMs > 40) { if (++G.slowFrames > 90 && G.substeps === 8) { G.substeps = 4; G.nextPlan = {}; } } else G.slowFrames = Math.max(0, G.slowFrames - 1); }
+    if (G.state === 'countdown') { if (now - G.countdownAt >= 1500) beginRacing(); }
+    if (G.state === 'racing' || G.state === 'finish' || G.state === 'start') advance(dt);
+    if (G.state === 'finish' && !G.resultShown && now - G.winnerAt >= 1500) showResult();
+    if (!reduced) {
+      updateParticles(dt);
+      for (const d of dots) { d.x += d.vx * dt; d.y += d.vy * dt; if (d.y < -10) { d.y = H + 10; d.x = Math.random() * W; } if (d.x < -10) d.x = W + 10; else if (d.x > W + 10) d.x = -10; }
+    }
+    if (!(document.hidden && G.state === 'start')) draw();
+    requestAnimationFrame(frame);
+  }
+
+  // ---- boot -----------------------------------------------------------------
+  syncButtons();
+  buildRuleList();
+  refreshStart(false);
+  hud.classList.add('hidden');
+  startAttract();
+  resize();
+  window.addEventListener('resize', resize);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+  try { if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('800 60px Inter'), document.fonts.load('700 30px Inter')]).then(() => draw()).catch(() => {}); } catch (e) {}
+  setTimeout(() => prefetchPlan(prefs.mode), 600);
+  requestAnimationFrame(frame);
+  // small debug hook for automated checks (no gameplay effect)
+  window.BURSTPOINT = { G, SIM, startFamily(idx) { setupRace(SIM.planRace(newSeed(), { familyIdx: idx, substeps: G.substeps }), 'random'); G.state = 'preview'; show(ui.start, false); show(ui.result, false); hud.classList.remove('hidden'); } };
+})();
+</script>
