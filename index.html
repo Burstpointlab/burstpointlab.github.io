@@ -117,35 +117,52 @@ button:disabled { cursor: not-allowed; }
 
 /* ---------- campaign path ---------- */
 .path { position: relative; width: 100%; }
+.scenery { position: absolute; left: 0; right: 0; top: 0; pointer-events: none; will-change: transform; }
+.scenery .neb { position: absolute; left: -20%; right: -20%; border-radius: 50%; filter: blur(6cqw); opacity: .4; background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--c) 40%, transparent), transparent 70%); }
+.scenery .pl { position: absolute; border-radius: 50%; animation: bob 7s ease-in-out infinite;
+  background: radial-gradient(circle at 34% 30%, color-mix(in srgb, var(--c) 45%, #fff) 0 6%, var(--c) 34%, color-mix(in srgb, var(--c) 30%, #000) 88%);
+  box-shadow: inset -1.4cqw -1.6cqw 3cqw rgba(0,0,0,.45), 0 0 5cqw color-mix(in srgb, var(--c) 30%, transparent); }
+.scenery .pl.far { filter: blur(.5cqw) saturate(.7); opacity: .45; }
+.scenery .pl.ringed::after { content: ""; position: absolute; left: -32%; right: -32%; top: 42%; height: 18%; border-radius: 50%; border: .5cqw solid color-mix(in srgb, var(--c) 60%, #fff); opacity: .55; transform: rotate(-14deg); }
 .path svg.trail { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .nodew { position: absolute; width: 0; height: 0; }
-.node { position: absolute; left: -9cqw; top: -9cqw; width: 18cqw; height: 18cqw; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 900 6.6cqw/1 var(--f); color: #fff; text-shadow: 0 .5cqw 0 rgba(0,0,0,.35);
-  background: radial-gradient(circle at 32% 26%, #ffffff 0 7%, color-mix(in srgb, var(--c) 55%, #fff) 19%, var(--c) 46%, color-mix(in srgb, var(--c) 36%, #000) 94%);
-  box-shadow: 0 1.6cqw 0 color-mix(in srgb, var(--c) 28%, #000), 0 3.4cqw 4.6cqw rgba(0,0,0,.5), inset 0 -1.2cqw 2cqw rgba(0,0,0,.25);
-  animation: bob 3.2s ease-in-out infinite; animation-delay: var(--d, 0s); transition: filter .15s; }
-.node::before { content: ""; position: absolute; left: 17%; top: 9%; width: 40%; height: 22%; border-radius: 50%; background: linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,0)); transform: rotate(-22deg); }
-.node::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.45) 48%, transparent 60%); background-size: 260% 100%; animation: shine 4.5s ease-in-out infinite; animation-delay: var(--d, 0s); mix-blend-mode: overlay; }
+.nodew::before { content: ""; position: absolute; left: -10cqw; top: 3.4cqw; width: 20cqw; height: 6.4cqw; border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 45%, color-mix(in srgb, var(--c) 55%, transparent), color-mix(in srgb, var(--c) 12%, transparent) 60%, transparent 72%); }
+.nodew::after { content: ""; position: absolute; left: -7.6cqw; top: 4.6cqw; width: 15.2cqw; height: 3.6cqw; border-radius: 50%; border: .35cqw solid color-mix(in srgb, var(--c) 70%, #fff); opacity: .35; }
+.nodew.locked::before { background: radial-gradient(50% 50% at 50% 45%, rgba(120,130,200,.25), transparent 70%); }
+.nodew.locked::after { opacity: .12; border-color: #8a90c0; }
+.node { position: absolute; left: -6.4cqw; top: -7.4cqw; width: 12.8cqw; height: 12.8cqw; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 900 5cqw/1 var(--f); color: #fff; text-shadow: 0 .4cqw 0 rgba(0,0,0,.35); z-index: 1;
+  background: radial-gradient(circle at 34% 28%, #ffffff 0 6%, color-mix(in srgb, var(--c) 55%, #fff) 17%, var(--c) 44%, color-mix(in srgb, var(--c) 34%, #000) 95%);
+  box-shadow: 0 .9cqw 0 color-mix(in srgb, var(--c) 26%, #000), 0 2.2cqw 3cqw rgba(0,0,0,.45), inset 0 -.9cqw 1.4cqw rgba(0,0,0,.25), 0 0 4cqw color-mix(in srgb, var(--c) 30%, transparent);
+  animation: hover 3.4s ease-in-out infinite; animation-delay: var(--d, 0s); transition: filter .15s; }
+@keyframes hover { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-1.1cqw); } }
+.node::before { content: ""; position: absolute; left: 18%; top: 9%; width: 38%; height: 20%; border-radius: 50%; background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,0)); transform: rotate(-22deg); }
+.node::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.5) 48%, transparent 60%); background-size: 260% 100%; animation: shine 5s ease-in-out infinite; animation-delay: var(--d, 0s); mix-blend-mode: overlay; }
 @keyframes shine { 0%, 60% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
 .node:active { filter: brightness(1.25); }
 .node.press { animation: press .32s cubic-bezier(.3,1.6,.5,1); }
-@keyframes press { 0% { transform: scale(1); } 35% { transform: scale(.82); } 100% { transform: scale(1); } }
-.node.locked { --c: #4a5080 !important; color: rgba(255,255,255,.55); animation: none; }
+@keyframes press { 0% { transform: scale(1); } 35% { transform: scale(.8); } 100% { transform: scale(1); } }
+.node.locked { --c: #474d7d !important; color: rgba(255,255,255,.5); animation: none; font-size: 3.6cqw; box-shadow: 0 .8cqw 0 #1d2047, 0 2cqw 3cqw rgba(0,0,0,.4), inset 0 -.9cqw 1.4cqw rgba(0,0,0,.25); }
 .node.locked::after { display: none; }
-.node .st { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2.6cqw; display: flex; gap: .3cqw; white-space: nowrap; }
-.node .st i { font-style: normal; font: 900 4cqw/1 var(--f); color: rgba(255,255,255,.16); text-shadow: 0 .4cqw 0 rgba(0,0,0,.4); }
-.node .st i.on { color: var(--gold); text-shadow: 0 .4cqw 0 #8a5a00, 0 0 2cqw rgba(255,212,92,.5); }
-.node .st i:nth-child(2) { transform: translateY(1cqw); }
-.ring { position: absolute; left: -13cqw; top: -13cqw; width: 26cqw; height: 26cqw; border-radius: 50%; border: .7cqw solid var(--c); opacity: 0; animation: ring 1.8s ease-out infinite; pointer-events: none; }
-.ring.b { animation-delay: .9s; }
-@keyframes ring { from { transform: scale(.6); opacity: .9; } to { transform: scale(1.25); opacity: 0; } }
-.playtag { position: absolute; left: 50%; top: -19cqw; transform: translateX(-50%); padding: 1.8cqw 3.6cqw; border-radius: 99px; background: linear-gradient(180deg, #fff, #dfe5ff); color: var(--ink); font: 900 3.2cqw/1 var(--f); letter-spacing: .08em; box-shadow: 0 1cqw 0 #8e97c9; white-space: nowrap; animation: bob 1.4s ease-in-out infinite; pointer-events: none; }
-.playtag::after { content: ""; position: absolute; left: 50%; bottom: -1.6cqw; margin-left: -1.6cqw; border: 1.6cqw solid transparent; border-top-color: #dfe5ff; border-bottom: 0; }
-.wbanner { position: absolute; left: 7cqw; right: 7cqw; height: 17cqw; margin-top: -8.5cqw; border-radius: 5cqw; display: flex; align-items: center; gap: 3.4cqw; padding: 0 4cqw;
-  background: linear-gradient(110deg, color-mix(in srgb, var(--c) 34%, #161a3d), #161a3d 75%); border: .35cqw solid color-mix(in srgb, var(--c) 60%, transparent); box-shadow: 0 1.3cqw 0 rgba(6,7,22,.85), 0 3cqw 5cqw rgba(0,0,0,.4); }
-.wbanner .orb { width: 10cqw; height: 10cqw; }
-.wbanner b { display: block; font: italic 900 5cqw/1 var(--f); }
-.wbanner small { display: block; margin-top: .9cqw; font: 600 2.8cqw/1.25 var(--f); color: var(--muted); }
-.wbanner i { margin-left: auto; font: 900 3cqw/1 var(--m); font-style: normal; color: var(--gold); white-space: nowrap; }
+.node.done { box-shadow: 0 .9cqw 0 color-mix(in srgb, var(--c) 26%, #000), 0 2.2cqw 3cqw rgba(0,0,0,.45), inset 0 -.9cqw 1.4cqw rgba(0,0,0,.25), 0 0 0 .5cqw color-mix(in srgb, var(--gold) 70%, transparent), 0 0 4cqw color-mix(in srgb, var(--c) 35%, transparent); }
+.nodew.cur .node { width: 15cqw; height: 15cqw; left: -7.5cqw; top: -9cqw; font-size: 6cqw; }
+.nodew.boss .node { width: 16cqw; height: 16cqw; left: -8cqw; top: -9.8cqw; font-size: 6.2cqw; }
+.nodew.boss .crown { position: absolute; left: 50%; top: -15.4cqw; transform: translateX(-50%) rotate(-8deg); font: 900 6cqw/1 var(--f); filter: drop-shadow(0 .5cqw 0 rgba(0,0,0,.35)); z-index: 2; pointer-events: none; }
+.node .st { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2.6cqw; display: flex; gap: .2cqw; white-space: nowrap; }
+.node .st i { font-style: normal; font: 900 3cqw/1 var(--f); color: rgba(255,255,255,.18); text-shadow: 0 .3cqw 0 rgba(0,0,0,.4); }
+.node .st i.on { color: var(--gold); text-shadow: 0 .3cqw 0 #8a5a00, 0 0 1.6cqw rgba(255,212,92,.55); }
+.node .st i:nth-child(2) { transform: translateY(.7cqw); }
+.ring { position: absolute; left: -11cqw; top: -13.5cqw; width: 22cqw; height: 22cqw; border-radius: 50%; border: .5cqw solid var(--c); opacity: 0; animation: ring 2s ease-out infinite; pointer-events: none; }
+.ring.b { animation-delay: 1s; }
+@keyframes ring { from { transform: scale(.55); opacity: .9; } to { transform: scale(1.2); opacity: 0; } }
+.playtag { position: absolute; left: 50%; top: -18.5cqw; transform: translateX(-50%); padding: 1.5cqw 3.2cqw; border-radius: 99px; background: linear-gradient(180deg, #fff, #dfe5ff); color: var(--ink); font: 900 2.8cqw/1 var(--f); letter-spacing: .1em; box-shadow: 0 .9cqw 0 #8e97c9, 0 1.6cqw 3cqw rgba(0,0,0,.35); white-space: nowrap; animation: bob 1.4s ease-in-out infinite; pointer-events: none; z-index: 2; }
+.playtag::after { content: ""; position: absolute; left: 50%; bottom: -1.4cqw; margin-left: -1.4cqw; border: 1.4cqw solid transparent; border-top-color: #dfe5ff; border-bottom: 0; }
+.wbanner { position: absolute; left: 9cqw; right: 9cqw; height: 15cqw; margin-top: -7.5cqw; border-radius: 99px; display: flex; align-items: center; gap: 3cqw; padding: 0 5cqw 0 2.4cqw; z-index: 1;
+  background: linear-gradient(110deg, color-mix(in srgb, var(--c) 36%, #161a3d), rgba(22,26,61,.92) 70%); border: .35cqw solid color-mix(in srgb, var(--c) 60%, transparent); box-shadow: 0 1.1cqw 0 rgba(6,7,22,.85), 0 2.6cqw 5cqw rgba(0,0,0,.4), 0 0 6cqw color-mix(in srgb, var(--c) 18%, transparent); }
+.wbanner .orb { width: 10.4cqw; height: 10.4cqw; }
+.wbanner b { display: block; font: italic 900 4.6cqw/1 var(--f); }
+.wbanner small { display: block; margin-top: .8cqw; font: 600 2.7cqw/1.2 var(--f); color: var(--muted); }
+.wbanner i { margin-left: auto; font: 900 2.8cqw/1 var(--m); font-style: normal; color: var(--gold); white-space: nowrap; }
 
 /* ---------- sheets (popups) ---------- */
 .veil { position: absolute; inset: 0; z-index: 20; background: rgba(4,5,16,.66); backdrop-filter: blur(1.4cqw); -webkit-backdrop-filter: blur(1.4cqw); display: flex; align-items: center; justify-content: center; padding: 5cqw; }
@@ -695,28 +712,39 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
   function renderPath(keepScroll) {
     const host = $('path'), tp = $('t-camp'), wpx = stage.clientWidth, u = wpx / 100, N = LEVELS.length;
     const prevScroll = tp.scrollTop, prevH = host.offsetHeight;
-    const STEP = 26 * u, TOPPAD = 62 * u, BOTPAD = 74 * u, BAN = 36 * u;
+    const STEP = 31 * u, TOPPAD = 70 * u, BOTPAD = 80 * u, BAN = 40 * u;
     const pos = []; let y = BOTPAD;
-    for (let i = 0; i < N; i++) { if (i > 0 && i % 10 === 0) y += BAN; pos.push({ x: 50 + 25 * Math.sin(i * 0.95 + 0.4), yb: y }); y += STEP; }
+    for (let i = 0; i < N; i++) { if (i > 0 && i % 10 === 0) y += BAN; pos.push({ x: 50 + 24 * Math.sin(i * 0.82 + 0.5), yb: y }); y += STEP; }
     const total = y + TOPPAD; host.style.height = total + 'px';
-    const cur = curLevel(); const tot = totalStars();
-    let svg = `<svg class="trail" viewBox="0 0 ${wpx} ${total}" preserveAspectRatio="none" aria-hidden="true"><defs><filter id="gl"><feGaussianBlur stdDeviation="${1.2 * u}"/></filter></defs>`;
+    const cur = curLevel(), tot = totalStars();
+    // scenery: nebula per world + planets left/right of the road, drawn on a slower parallax layer
+    let sc2 = '';
+    const rnd = S.mulberry32(77);
+    for (let w = 0; w < 4; w++) { const y0 = w === 0 ? 0 : pos[w * 10].yb - BAN; const y1 = w === 3 ? total : pos[w * 10 + 9].yb + STEP; sc2 += `<span class="neb" style="--c:${WORLD_COL[w]};top:${total - y1 - 20 * u}px;height:${y1 - y0 + 40 * u}px"></span>`; }
+    const pcols = ['#3DE1FF', '#C46BFF', '#FF3DDA', '#FFC53D', '#7CFF3D', '#8FD6FF', '#FF5C7A'];
+    for (let k = 0; k < 22; k++) {
+      const yy = (k + rnd()) / 22 * total, side = k % 2 ? 1 : -1, far = rnd() < .5, s = far ? 4 + rnd() * 6 : 8 + rnd() * 9;
+      const x = side < 0 ? 2 + rnd() * 14 : 84 + rnd() * 12;
+      sc2 += `<span class="pl${far ? ' far' : ''}${rnd() < .25 ? ' ringed' : ''}" style="--c:${pcols[k % pcols.length]};left:${x - s / 2}%;top:${yy}px;width:${s}cqw;height:${s}cqw;animation-delay:-${(rnd() * 7).toFixed(1)}s"></span>`;
+    }
+    let svg = `<svg class="trail" viewBox="0 0 ${wpx} ${total}" preserveAspectRatio="none" aria-hidden="true"><defs><filter id="gl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${1.4 * u}"/></filter></defs>`;
+    let road = '', done = '', todo = '';
     for (let i = 0; i < N - 1; i++) {
       const a = pos[i], b = pos[i + 1], ax = a.x * u, ay = total - a.yb, bx = b.x * u, by = total - b.yb, my = (ay + by) / 2, d = `M${ax} ${ay} C ${ax} ${my}, ${bx} ${my}, ${bx} ${by}`;
-      const done = !!save.stars[LEVELS[i].id], col = WORLD_COL[LEVELS[i].world];
-      if (done) svg += `<path d="${d}" fill="none" stroke="${col}" stroke-width="${2.6 * u}" opacity=".35" filter="url(#gl)"/><path d="${d}" fill="none" stroke="${col}" stroke-width="${1.4 * u}" stroke-linecap="round"/>`;
-      else svg += `<path d="${d}" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="${1.6 * u}" stroke-linecap="round" stroke-dasharray="0.01 ${3.6 * u}"/>`;
+      road += d + ' ';
+      if (save.stars[LEVELS[i].id]) done += `<path d="${d}" fill="none" stroke="${WORLD_COL[LEVELS[i].world]}" stroke-width="${1.2 * u}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${WORLD_COL[LEVELS[i].world]}" stroke-width="${3 * u}" opacity=".4" filter="url(#gl)"/>`;
+      else todo += `<path d="${d}" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="${0.9 * u}" stroke-linecap="round" stroke-dasharray="0.01 ${2.6 * u}"/>`;
     }
-    svg += '</svg>';
-    let html = svg;
+    svg += `<path d="${road}" fill="none" stroke="rgba(6,7,24,.55)" stroke-width="${9 * u}" stroke-linecap="round"/><path d="${road}" fill="none" stroke="rgba(140,150,255,.10)" stroke-width="${9 * u}" stroke-linecap="round" stroke-dasharray="${0.6 * u} ${1.2 * u}" opacity=".0"/><path d="${road}" fill="none" stroke="rgba(160,170,255,.14)" stroke-width="${7.4 * u}" stroke-linecap="round"/><path d="${road}" fill="none" stroke="rgba(8,9,28,.9)" stroke-width="${6.6 * u}" stroke-linecap="round"/>` + todo + done + '</svg>';
+    let html = `<div class="scenery" id="scenery" style="height:${total}px">${sc2}</div>` + svg;
     for (let w = 0; w < 4; w++) {
-      const yy = w === 0 ? total - BOTPAD + 30 * u : total - (pos[w * 10].yb - BAN * .5) + 1 * u;
+      const yy = w === 0 ? total - BOTPAD + 32 * u : total - (pos[w * 10].yb - BAN * .52);
       const ws = LEVELS.filter(l => l.world === w).reduce((s, l) => s + (save.stars[l.id] || 0), 0); const locked = tot < WORLD_GATE[w];
-      html += `<div class="wbanner" style="--c:${WORLD_COL[w]};top:${yy}px"><span class="orb" style="--c:${WORLD_COL[w]}"></span><span><b>${WORLD_NAMES[w]}</b><small>${locked ? 'Collect ' + WORLD_GATE[w] + ' ★ to open' : ws + ' of 30 ★'}</small></span><i>${locked ? '🔒' : w === 0 ? 'WORLD 1' : 'WORLD ' + (w + 1)}</i></div>`;
+      html += `<div class="wbanner" style="--c:${WORLD_COL[w]};top:${yy}px"><span class="orb" style="--c:${WORLD_COL[w]}"></span><span><b>${WORLD_NAMES[w]}</b><small>${locked ? 'Collect ' + WORLD_GATE[w] + ' ★ to open' : ws + ' of 30 ★'}</small></span><i>${locked ? '🔒' : 'WORLD ' + (w + 1)}</i></div>`;
     }
     LEVELS.forEach((L, i) => {
-      const p = pos[i], open = levelOpen(i), s = save.stars[L.id] || 0;
-      html += `<div class="nodew" style="left:${p.x}%;top:${total - p.yb}px">${i === cur ? `<span class="ring" style="--c:${WORLD_COL[L.world]}"></span><span class="ring b" style="--c:${WORLD_COL[L.world]}"></span>` : ''}<button class="node${open ? '' : ' locked'}" id="lvl-${L.id}" style="--c:${WORLD_COL[L.world]};--d:-${(i * 0.37 % 3).toFixed(2)}s" aria-label="Level ${L.id}">${open ? L.id : '🔒'}${open ? `<span class="st"><i class="${s >= 1 ? 'on' : ''}">★</i><i class="${s >= 2 ? 'on' : ''}">★</i><i class="${s >= 3 ? 'on' : ''}">★</i></span>` : ''}</button>${i === cur ? '<span class="playtag">PLAY</span>' : ''}</div>`;
+      const p = pos[i], open = levelOpen(i), s = save.stars[L.id] || 0, boss = i % 10 === 9;
+      html += `<div class="nodew${open ? '' : ' locked'}${i === cur ? ' cur' : ''}${boss ? ' boss' : ''}" style="--c:${WORLD_COL[L.world]};left:${p.x}%;top:${total - p.yb}px">${i === cur ? `<span class="ring"></span><span class="ring b"></span>` : ''}${boss ? '<span class="crown">👑</span>' : ''}<button class="node${open ? '' : ' locked'}${s ? ' done' : ''}" id="lvl-${L.id}" style="--d:-${(i * 0.37 % 3).toFixed(2)}s" aria-label="Level ${L.id}">${open ? L.id : '🔒'}${open ? `<span class="st"><i class="${s >= 1 ? 'on' : ''}">★</i><i class="${s >= 2 ? 'on' : ''}">★</i><i class="${s >= 3 ? 'on' : ''}">★</i></span>` : ''}</button>${i === cur ? '<span class="playtag">PLAY</span>' : ''}</div>`;
     });
     host.innerHTML = html;
     LEVELS.forEach((L, i) => {
@@ -725,8 +753,11 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
         if (!levelOpen(i)) { const g = WORLD_GATE[L.world]; toast(totalStars() < g ? `Collect ${g} ★ to open the ${WORLD_NAMES[L.world]}` : `Finish level ${L.id - 1} first`); return; }
         setTimeout(() => levelSheet(i), 160); };
     });
-    if (keepScroll && prevH) tp.scrollTop = prevScroll + (total - prevH); else tp.scrollTop = Math.max(0, total - pos[cur].yb - tp.clientHeight * 0.6);
+    if (keepScroll && prevH) tp.scrollTop = prevScroll + (total - prevH); else tp.scrollTop = Math.max(0, total - pos[cur].yb - tp.clientHeight * 0.62);
+    parallax();
   }
+  function parallax() { const sc = $('scenery'); if (!sc || reduced) return; const tp = $('t-camp'); sc.style.transform = `translateY(${tp.scrollTop * 0.3}px)`; }
+  $('t-camp').addEventListener('scroll', parallax, { passive: true });
 
   // ---------- level popup ----------
   function starsRow(have, labels, pop) { return `<div class="bigstars">${[0, 1, 2].map(i => `<div class="bstar${pop ? ' pop' : ''}" style="animation-delay:${i * .25}s">${STAR(have > i, 'p' + i + Math.random().toString(36).slice(2, 6))}<small>${labels[i]}</small></div>`).join('')}</div>`; }
