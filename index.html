@@ -931,6 +931,7 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
     const timed = !!C.online; clearTimeout(C.pickTimer);
     el.innerHTML = `<div class="q">${q}</div><div class="st">${st}</div>${timed ? '<div class="ptimer"><i id="ptbar"></i></div>' : ''}<div class="gates">${pr.map((g, j) => { const G2 = S.gate(g); return `<button class="gatebtn" id="gate-${j}" style="--c:${gateCol(g)}">${h === j ? '<span class="hint">HINT</span>' : ''}<b>${G2.top}</b><span>${G2.bot}</span></button>`; }).join('')}</div>`;
     pr.forEach((g, j) => { $('gate-' + j).onclick = () => { clearTimeout(C.pickTimer); pickGate(k, g); }; });
+    if (timed && location.hash === '#autopick') setTimeout(() => { if (!$('choice').hidden) $('gate-' + (Math.random() < .5 ? 0 : 1)).click(); }, 400);
     if (timed) { const bar = $('ptbar'); requestAnimationFrame(() => { bar.style.transition = `width ${PICK_MS}ms linear`; bar.style.width = '0%'; }); C.pickTimer = setTimeout(() => { if (!$('choice').hidden) pickGate(k, pr[Math.random() < .5 ? 0 : 1], true); }, PICK_MS); }
   }
   const PICK_MS = 3000, WAIT_MS = 12000;
@@ -1240,7 +1241,9 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
       if (C.oppPicks[m.k]) return; C.oppPicks[m.k] = m.g;
       if (m.k === 0) { tryStartOnline(); return; }
       if (G.phase === 'wait' && C.waitK === m.k) { const r = G.race; r.lanes[1].gates[m.k] = m.g; floatText(1, r.barY[Math.min(m.k, r.nbars - 1)] - 70, gateLabel(m.g), G.meta.cols[1]); $('waitopp').hidden = true; clearTimeout(C.waitTimer); C.waitK = null; G.phase = 'run'; }
-    } else if (m.t === 'leave') { oppLeft(); }
+    } else if (m.t === 'sync') { Object.keys(m.picks || {}).forEach(k => { if (!C.oppPicks[k]) onNetMsg({ t: 'pick', k: +k, g: m.picks[k] }); }); }
+    else if (m.t === 'hello') { sendSync(); }
+    else if (m.t === 'leave') { oppLeft(); }
   }
   function tryStartOnline() {
     if (!C.myStart) return;
@@ -1249,8 +1252,9 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
     S.applyStart(G.race, 1, C.oppPicks[0]); floatText(1, 560, gateLabel(C.oppPicks[0]), G.meta.cols[1]); countdown();
   }
   function waitOpp(k) { G.phase = 'wait'; C.waitK = k; showWait('Opponent picks a gate…'); if (C.net.bot) C.net.request(k); armForfeit(); }
+  function sendSync() { if (!C || !C.online || C.net.bot) return; const p = {}; C.picks.forEach((g, k) => { if (g) p[k] = g; }); C.net.send({ t: 'sync', picks: p }); }
   function showWait(t) { const w = $('waitopp'); w.textContent = t; w.hidden = false; }
-  function armForfeit() { clearTimeout(C.waitTimer); C.waitTimer = setTimeout(() => { if (G.phase === 'wait') oppLeft(); }, WAIT_MS); }
+  function armForfeit() { clearTimeout(C.waitTimer); clearInterval(C.syncTimer); sendSync(); C.syncTimer = setInterval(() => { if (G.phase === 'wait') sendSync(); else clearInterval(C.syncTimer); }, 1500); C.waitTimer = setTimeout(() => { if (G.phase === 'wait') oppLeft(); }, WAIT_MS); }
   function oppLeft() { if (!C || C.kind !== 'online' || G.phase === 'done') return; $('waitopp').hidden = true; G.phase = 'done'; G.result = { win: true, forfeit: true, t: Infinity }; endOnline(G.result); }
   function endOnline(res) {
     G.phase = 'done'; clearTimeout(C.waitTimer); try { C.net.close(); } catch (e) { }
@@ -1266,7 +1270,7 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
     on('o-again', () => { closeSheet(); practice ? startPractice() : quickMatch(); }); on('o-back', () => goTab('online'));
   }
   // --- server transport (Supabase Realtime). Stays off until SUPA_URL and SUPA_KEY are set. ---
-  const SUPA_URL = '', SUPA_KEY = '';
+  const SUPA_URL = 'https://junjukfrsuzgonghhezs.supabase.co', SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bmp1a2Zyc3V6Z29uZ2hoZXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMzg3NTIsImV4cCI6MjEwODcxNDc1Mn0.DjUen7XtFLLOtJ9AoeFoY1-nzgwPTs-b3JUKZaD-86M'; // public anon key (safe in the browser)
   const serverOn = () => !!(SUPA_URL && SUPA_KEY);
   let sb = null, myId = null;
   async function sbInit() {
@@ -1280,7 +1284,7 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
     const ch = sb.channel('match:' + matchId, { config: { broadcast: { self: false } } });
     const net = { onMsg: null, send(m) { ch.send({ type: 'broadcast', event: 'm', payload: Object.assign({ from: me }, m) }); }, close() { try { net.send({ t: 'leave' }); sb.removeChannel(ch); } catch (e) { } } };
     ch.on('broadcast', { event: 'm' }, ({ payload }) => { if (payload.from !== me && net.onMsg) net.onMsg(payload); });
-    return new Promise(res => ch.subscribe(st => { if (st === 'SUBSCRIBED') res(net); }));
+    return new Promise(res => ch.subscribe(st => { if (st === 'SUBSCRIBED') { net.send({ t: 'hello' }); res(net); } }));
   }
   async function quickMatch(room) {
     if (!serverOn()) { toast('Online server comes soon – try a practice duel'); return; }
