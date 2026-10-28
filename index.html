@@ -10,12 +10,20 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<style>
+@font-face{font-family:"Rubik";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/rubik-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Rubik";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/rubik-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Rubik";font-style:normal;font-weight:700;font-display:swap;src:url(fonts/rubik-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Rubik";font-style:normal;font-weight:800;font-display:swap;src:url(fonts/rubik-latin-800-normal.woff2) format("woff2")}
+@font-face{font-family:"Rubik";font-style:normal;font-weight:900;font-display:swap;src:url(fonts/rubik-latin-900-normal.woff2) format("woff2")}
+@font-face{font-family:"Rubik";font-style:italic;font-weight:900;font-display:swap;src:url(fonts/rubik-latin-900-italic.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/jetbrains-mono-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:800;font-display:swap;src:url(fonts/jetbrains-mono-latin-800-normal.woff2) format("woff2")}
+</style>
+<script>window.BP_SUPA_SRC='vendor/supabase.js';</script>
 <title>Burstpoint</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="Burstpoint: tap a level, pick a gate at every wall, beat the rival lane.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,500;0,600;0,700;0,800;0,900;1,900&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
 <style>
 /* Layout: a 9:16 phone stage. Tabs sit between a profile bar and a 3D dock; play happens in sheets and a full-screen race on top. */
 :root {
@@ -98,6 +106,7 @@ button:disabled { cursor: not-allowed; }
 #t-camp { -webkit-mask-image: linear-gradient(180deg, transparent 0, transparent 24cqw, #000 40cqw); mask-image: linear-gradient(180deg, transparent 0, transparent 24cqw, #000 40cqw); }
 .tabp.pad { padding: 20cqw 4.6cqw 26cqw; display: flex; flex-direction: column; gap: 3.4cqw; }
 .ptitle { margin: 0; font: italic 900 9cqw/1 var(--f); letter-spacing: -.02em; text-shadow: 0 .7cqw 0 rgba(0,0,0,.4); }
+.legal a { color: var(--muted); text-decoration: underline; }
 .sub { margin: 0; font: 600 3.2cqw/1.4 var(--f); color: var(--muted); }
 .lbl { font: 800 2.8cqw/1 var(--f); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); display: flex; justify-content: space-between; align-items: center; gap: 2cqw; }
 .lbl span { letter-spacing: 0; text-transform: none; font-family: var(--m); color: var(--muted); }
@@ -388,11 +397,13 @@ input[type=text] { width: 100%; font: 700 3.8cqw/1.3 var(--m); color: var(--text
     <div class="list" id="sh-boosts"></div>
     <div class="lbl">Spark packs <span class="chip">APP VERSION</span></div>
     <p class="sub">Buying sparks with money comes with the app store version. In this demo you earn them by playing.</p>
+    <p class="sub legal" style="text-align:center;margin-top:4cqw"><a href="legal.html#datenschutz" target="_blank" rel="noopener">Privacy</a> · <a href="legal.html#impressum" target="_blank" rel="noopener">Imprint</a></p>
   </section>
 
   <section id="t-online" class="tabp pad" hidden aria-label="Online">
     <h2 class="ptitle">Online</h2>
     <div id="on-body" style="display:flex;flex-direction:column;gap:3.4cqw"></div>
+    <p class="sub legal" style="text-align:center;margin-top:4cqw">Online mode sends your player name, ball design, trophies and picks to your opponent. <a href="legal.html#datenschutz" target="_blank" rel="noopener">Privacy</a> · <a href="legal.html#impressum" target="_blank" rel="noopener">Imprint</a></p>
   </section>
 
   <section id="t-friends" class="tabp pad" hidden aria-label="Friends">
@@ -1278,7 +1289,7 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
   let sb = null, myId = null;
   async function sbInit() {
     if (sb) return sb;
-    if (!window.supabase) await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+    if (!window.supabase) await new Promise((res, rej) => { const s = document.createElement('script'); s.src = window.BP_SUPA_SRC || 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
     sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, { realtime: { params: { eventsPerSecond: 20 } } });
     myId = save.pid + '-' + Math.random().toString(36).slice(2, 8); // realtime only, no login needed
     return sb;
@@ -1432,7 +1443,8 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
       <input type="text" id="pf-name" maxlength="14" value="${save.name.replace(/"/g, '')}" aria-label="Player name">
       <div class="lbl">Level ${lvl()} <span>${save.xp} XP · ${save.pid}</span></div>
       <div class="stats"><div><b>${cleared}</b><small>levels cleared</small></div><div><b>${totalStars()}</b><small>stars</small></div><div><b>${save.tower.best || 0}</b><small>best Tower floor</small></div><div><b>${save.streak.n || 0}</b><small>daily streak</small></div><div><b>${won}</b><small>duels won</small></div><div><b>${Object.keys(save.owned).length}</b><small>ball colours</small></div></div>
-      <button class="btn3d" id="pf-save" style="--c:#3DE1FF">SAVE</button>`, () => refreshTop());
+      <button class="btn3d" id="pf-save" style="--c:#3DE1FF">SAVE</button>
+      <p class="sub legal" style="text-align:center"><a href="legal.html#datenschutz" target="_blank" rel="noopener">Privacy</a> · <a href="legal.html#impressum" target="_blank" rel="noopener">Imprint</a></p>`, () => refreshTop());
     on('pf-save', () => { const v = $('pf-name').value.trim().slice(0, 14); if (v) save.name = v; persist(); refreshTop(); closeSheet(); toast('Profile saved'); });
   };
   function renderFriends() {
