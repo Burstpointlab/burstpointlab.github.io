@@ -357,6 +357,8 @@ input[type=text] { width: 100%; font: 700 3.8cqw/1.3 var(--m); color: var(--text
   <section id="t-shop" class="tabp pad" hidden aria-label="Shop">
     <h2 class="ptitle">Shop</h2>
     <div class="offer" id="offer"></div>
+    <div class="lbl">Free sparks <span>follow Burstpoint</span></div>
+    <div class="list" id="sh-social"></div>
     <div class="lbl">Ball colours <span>cosmetic</span></div>
     <div class="skins" id="sh-skins"></div>
     <div class="lbl">Boosts</div>
@@ -374,6 +376,8 @@ input[type=text] { width: 100%; font: 700 3.8cqw/1.3 var(--m); color: var(--text
 
   <section id="t-friends" class="tabp pad" hidden aria-label="Friends">
     <h2 class="ptitle">Friends</h2>
+    <div class="lbl">Follow Burstpoint <span>+20 ✦ each</span></div>
+    <div class="list" id="fr-social"></div>
     <div class="panel soon"><div class="lbl">Your player code</div><div class="pcode"><span id="fr-code">BP-0000</span><button id="fr-copy" class="btn2">Copy</button></div><small>Friend lists arrive with online mode. Duels already work with codes.</small></div>
     <div class="panel soon"><div class="lbl">Duel a friend</div><small>Win a level or the daily race, tap <b>Copy duel code</b> and send it. Paste a friend's code here and beat their route.</small>
       <input type="text" id="du-in" placeholder="BP-L12-0110" autocomplete="off" spellcheck="false" aria-label="Duel code"><p class="err" id="du-err"></p><button id="du-go" class="btn3d" style="--c:#FFC53D">LOAD DUEL</button></div>
@@ -586,6 +590,12 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
   const WORLD_COL = [PAL.cyan, PAL.amber, PAL.magenta, PAL.rose];
   const WORLD_GATE = [0, 10, 30, 55];
   const MAXH = 5, REGEN = 20 * 60 * 1000, PASS_XP = 100, PASS_TIERS = 20;
+  const SOCIAL = [
+    ['instagram', 'Instagram', '@burstpointlab · new races daily', 'https://www.instagram.com/burstpointlab/', '#FF3DDA'],
+    ['tiktok', 'TikTok', 'the same races, every day', 'https://www.tiktok.com/@sooftgrade', '#3DE1FF'],
+    ['youtube', 'YouTube', 'Shorts and weekly compilations', 'https://www.youtube.com/channel/UCAF2xgXJeHoeennKR7wp7tw?sub_confirmation=1', '#FF5C7A'],
+  ];
+  const SOCIAL_REWARD = 20;
   const SKINS = [['cyan', 0], ['lime', 40], ['amber', 60], ['magenta', 80], ['ice', 100], ['rose', 120], ['violet', 150], ['gold', 250]];
   const STAR = (on, id) => `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="sg${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${on ? '#fff3b0' : '#4a5080'}"/><stop offset=".5" stop-color="${on ? '#FFD45C' : '#343a6a'}"/><stop offset="1" stop-color="${on ? '#e09a10' : '#262b55'}"/></linearGradient></defs><path d="M12 1.8l3 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17l-6.2 3.4 1.4-6.8L2.1 8.9l6.9-.8z" fill="url(#sg${id})" stroke="${on ? '#8a5a00' : '#1a1d40'}" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
 
@@ -1073,6 +1083,19 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
   $('m-tower').onclick = () => { audio.tap(); openTower(); };
   $('m-duel').onclick = () => { audio.tap(); goTab('friends'); };
 
+  // ---------- follow rewards (paid once per platform, on visiting the page) ----------
+  function renderSocial(hostId) {
+    const host = $(hostId); if (!host) return; host.innerHTML = '';
+    if (!save.social) save.social = {};
+    SOCIAL.forEach(([id, name, sub, url, col]) => {
+      const got = !!save.social[id], a = document.createElement('a');
+      a.className = 'item'; a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.id = hostId + '-' + id; a.style.textDecoration = 'none'; a.style.color = 'inherit';
+      a.innerHTML = `<span class="orb" style="--c:${col}"></span><span><b>${name}</b><small>${sub}</small></span><i style="color:${got ? PAL.lime : PAL.gold}">${got ? 'THANKS ✓' : '+' + SOCIAL_REWARD + ' ✦'}</i>`;
+      a.addEventListener('click', () => { audio.tap(); if (!save.social[id]) { save.social[id] = 1; addSparks(SOCIAL_REWARD); refreshTop(); setTimeout(() => { toast(`+${SOCIAL_REWARD} ✦ – thanks for following!`); confetti(); renderSocial('sh-social'); renderSocial('fr-social'); }, 300); } });
+      host.appendChild(a);
+    });
+  }
+
   // ---------- shop & offer ----------
   function offerToday() {
     const k = todayKey(), h = S.hashStr('offer' + k);
@@ -1081,6 +1104,7 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
     return { key: k, kind: 'hearts', title: 'Full hearts', col: PAL.rose, full: 30, price: 12 };
   }
   function renderShop() {
+    renderSocial('sh-social');
     const o = offerToday(), bought = save.offer[o.key];
     $('offer').innerHTML = `<span class="orb" style="--c:${o.col}"></span><span><span class="k">OFFER OF THE DAY</span><b>${o.title}</b><span class="pr"><s>${o.full} ✦</s> ${o.price} ✦</span><span class="tm">ends in ${untilMidnight()}</span></span><button class="btn3d" id="of-buy" ${bought ? 'disabled' : ''}>${bought ? 'BOUGHT ✓' : 'GET IT'}</button>`;
     on('of-buy', () => { if (save.sparks < o.price) { toast(`Needs ${o.price} ✦. You have ${save.sparks}.`); return; } save.sparks -= o.price; save.offer[o.key] = 1; if (o.kind === 'skin') { save.owned[o.id] = 1; save.skin = o.id; } else save.hearts = { n: MAXH, t: Date.now() }; persist(); refreshTop(); confetti(); toast('Unlocked'); renderShop(); });
@@ -1131,6 +1155,7 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
     on('pf-save', () => { const v = $('pf-name').value.trim().slice(0, 14); if (v) save.name = v; persist(); refreshTop(); closeSheet(); toast('Profile saved'); });
   };
   function renderFriends() {
+    renderSocial('fr-social');
     $('fr-code').textContent = save.pid;
     const l = $('fr-list'); l.innerHTML = save.duels.length ? '' : '<p class="sub">No duels yet. Your duels will show up here.</p>';
     save.duels.slice(-6).reverse().forEach(d => { const e = document.createElement('div'); e.className = 'item'; e.innerHTML = `<span class="orb" style="--c:${d.win ? PAL.lime : PAL.rose}"></span><span><b>${d.where}</b><small>Friend ${d.ft.toFixed(2)} s · you ${d.t ? d.t.toFixed(2) + ' s' : '–'}</small></span><i style="color:${d.win ? PAL.lime : PAL.rose}">${d.win ? 'WON' : 'LOST'}</i>`; l.appendChild(e); });
