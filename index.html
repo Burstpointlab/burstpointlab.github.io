@@ -1042,12 +1042,13 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
     G.floats.forEach(f => f.age++); G.floats = G.floats.filter(f => f.age < 60);
   }
   function frame(now) {
-    const dt = Math.min(.1, (now - (G.last || now)) / 1000); G.last = now;
+    const AUTO = location.hash === '#autopick';
+    const dt = Math.min(AUTO ? 1 : .1, (now - (G.last || now)) / 1000); G.last = now;
     if (G.mode === 'race' && G.race) {
       const r = G.race;
       if (G.phase === 'run' || G.phase === 'end') {
         G.acc += dt * G.speed; let n = 0;
-        while (G.acc >= S.TICK && n < 12 && (G.phase === 'run' || G.phase === 'end')) {
+        while (G.acc >= S.TICK && n < (AUTO ? 40 : 12) && (G.phase === 'run' || G.phase === 'end')) {
           G.acc -= S.TICK; n++;
           if (G.endT !== null && r.t >= G.endT) break;
           const snap = S.snap(r);
@@ -1064,8 +1065,9 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
       draw();
     }
     fxStep(dt);
-    requestAnimationFrame(frame);
+    if (!frame.hooked) requestAnimationFrame(frame);
   }
+  if (location.hash === '#autopick') { frame.hooked = false; setInterval(() => { if (document.hidden) { frame.hooked = true; frame(performance.now()); frame.hooked = false; } }, 250); }
   function afterStep() {
     const r = G.race;
     if (G.endT === null && (r.lanes[0].finished || r.lanes[1].finished)) {
