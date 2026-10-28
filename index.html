@@ -1042,7 +1042,7 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
     G.floats.forEach(f => f.age++); G.floats = G.floats.filter(f => f.age < 60);
   }
   function frame(now) {
-    const AUTO = location.hash === '#autopick';
+    const AUTO = location.hash === '#autopick'; frame.lastCall = performance.now();
     const dt = Math.min(AUTO ? 1 : .1, (now - (G.last || now)) / 1000); G.last = now;
     if (G.mode === 'race' && G.race) {
       const r = G.race;
@@ -1067,7 +1067,7 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
     fxStep(dt);
     if (!frame.hooked) requestAnimationFrame(frame);
   }
-  if (location.hash === '#autopick') { frame.hooked = false; setInterval(() => { if (document.hidden) { frame.hooked = true; frame(performance.now()); frame.hooked = false; } }, 250); }
+  if (location.hash === '#autopick') { frame.hooked = false; setInterval(() => { if (performance.now() - (frame.lastCall || 0) > 400) { frame.hooked = true; frame(performance.now()); frame.hooked = false; } }, 250); }
   function afterStep() {
     const r = G.race;
     if (G.endT === null && (r.lanes[0].finished || r.lanes[1].finished)) {
