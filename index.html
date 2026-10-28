@@ -1245,7 +1245,8 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
       if (G.phase === 'wait' && C.waitK === m.k) { const r = G.race; r.lanes[1].gates[m.k] = m.g; floatText(1, r.barY[Math.min(m.k, r.nbars - 1)] - 70, gateLabel(m.g), G.meta.cols[1]); $('waitopp').hidden = true; clearTimeout(C.waitTimer); C.waitK = null; G.phase = 'run'; }
     } else if (m.t === 'sync') { Object.keys(m.picks || {}).forEach(k => { if (!C.oppPicks[k]) onNetMsg({ t: 'pick', k: +k, g: m.picks[k] }); }); }
     else if (m.t === 'hello') { sendSync(); }
-    else if (m.t === 'leave') { oppLeft(); }
+    else if (m.t === 'done') { C.oppDone = true; }
+    else if (m.t === 'leave') { if (!C.oppDone) oppLeft(); }
   }
   function tryStartOnline() {
     if (!C.myStart) return;
@@ -1259,7 +1260,7 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
   function armForfeit() { clearTimeout(C.waitTimer); clearInterval(C.syncTimer); sendSync(); C.syncTimer = setInterval(() => { if (G.phase === 'wait') sendSync(); else clearInterval(C.syncTimer); }, 1500); C.waitTimer = setTimeout(() => { if (G.phase === 'wait') oppLeft(); }, WAIT_MS); }
   function oppLeft() { if (!C || C.kind !== 'online' || G.phase === 'done') return; $('waitopp').hidden = true; G.phase = 'done'; G.result = { win: true, forfeit: true, t: Infinity }; endOnline(G.result); }
   function endOnline(res) {
-    G.phase = 'done'; clearTimeout(C.waitTimer); try { C.net.close(); } catch (e) { }
+    G.phase = 'done'; clearTimeout(C.waitTimer); clearInterval(C.syncTimer); try { res.forfeit ? C.net.close() : (C.net.finish ? C.net.finish() : C.net.close()); } catch (e) { }
     const practice = C.practice; let rew = [], dTr = 0;
     if (practice) { save.ostats.practice++; addXP(res.win ? 10 : 4); rew.push('+' + (res.win ? 10 : 4) + ' XP'); }
     else { dTr = res.win ? 25 : -15; save.trophies = Math.max(0, save.trophies + dTr); res.win ? save.ostats.w++ : save.ostats.l++; addXP(res.win ? 25 : 8); addSparks(res.win ? 6 : 2); rew.push((dTr > 0 ? '+' : '') + dTr + ' 🏆', '+' + (res.win ? 25 : 8) + ' XP', '+' + (res.win ? 6 : 2) + ' ✦'); }
@@ -1284,7 +1285,7 @@ const DAILIES = {"2026-10-27":{"id":"2026-10-27","world":1,"rival":["bx2","p2"],
   }
   function matchNet(matchId, me) {
     const ch = sb.channel('match:' + matchId, { config: { broadcast: { self: false } } });
-    const net = { onMsg: null, send(m) { ch.send({ type: 'broadcast', event: 'm', payload: Object.assign({ from: me }, m) }); }, close() { try { net.send({ t: 'leave' }); sb.removeChannel(ch); } catch (e) { } } };
+    const net = { onMsg: null, send(m) { ch.send({ type: 'broadcast', event: 'm', payload: Object.assign({ from: me }, m) }); }, close() { try { net.send({ t: 'leave' }); setTimeout(() => sb.removeChannel(ch), 1000); } catch (e) { } }, finish() { try { net.send({ t: 'done' }); setTimeout(() => sb.removeChannel(ch), 15000); } catch (e) { } } };
     ch.on('broadcast', { event: 'm' }, ({ payload }) => { if (payload.from !== me && net.onMsg) net.onMsg(payload); });
     return new Promise(res => ch.subscribe(st => { if (st === 'SUBSCRIBED') { net.send({ t: 'hello' }); res(net); } }));
   }
